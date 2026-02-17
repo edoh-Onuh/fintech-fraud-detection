@@ -1,0 +1,9 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.app-container {
+  min-height: 100vh;
+  background: #e9f1f1;
+}

@@ -1,0 +1,26 @@
+/* Dashboard Layout */
+.dashboard-container {
+  min-height: 100vh;
+  background: #e9f1f1;
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #e9f1f1 25%, #d4e8e6 50%, #e9f1f1 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Error state */
+.error-state {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border: 1px solid #fca5a5;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: #991b1b;
+}
