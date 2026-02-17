@@ -33,25 +33,31 @@ export default function Dashboard({ user, onLogout }) {
     }
   }, [])
 
+  const isDemoMode = localStorage.getItem('token') === 'demo_offline_token'
+
+  const DEMO_METRICS = { total_transactions: 48291, fraud_detected: 1247, approval_rate: 97.4, avg_response_time: 42 }
+  const DEMO_HEALTH = { status: 'healthy', total_predictions: 48291, fraud_rate: 0.026, uptime: '99.9%' }
+  const DEMO_MODELS = { models: [{ model_name: 'XGBoost Ensemble', version: '2.1.0', is_trained: true, is_active: true, feature_count: 47, metadata: { accuracy: 0.9947, auc_roc: 0.998 } }] }
+
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['metrics'],
-    queryFn: () => metricsAPI.getMetrics().then(r => r.data),
-    refetchInterval: autoRefresh ? 5000 : false,
-    retry: 2
+    queryFn: () => isDemoMode ? Promise.resolve(DEMO_METRICS) : metricsAPI.getMetrics().then(r => r.data),
+    refetchInterval: autoRefresh && !isDemoMode ? 5000 : false,
+    retry: isDemoMode ? 0 : 2
   })
 
   const { data: health } = useQuery({
     queryKey: ['health'],
-    queryFn: () => metricsAPI.getHealth().then(r => r.data),
-    refetchInterval: autoRefresh ? 10000 : false,
-    retry: 2
+    queryFn: () => isDemoMode ? Promise.resolve(DEMO_HEALTH) : metricsAPI.getHealth().then(r => r.data),
+    refetchInterval: autoRefresh && !isDemoMode ? 10000 : false,
+    retry: isDemoMode ? 0 : 2
   })
 
   const { data: models } = useQuery({
     queryKey: ['models'],
-    queryFn: () => modelsAPI.listModels().then(r => r.data),
-    refetchInterval: autoRefresh ? 30000 : false,
-    retry: 2
+    queryFn: () => isDemoMode ? Promise.resolve(DEMO_MODELS) : modelsAPI.listModels().then(r => r.data),
+    refetchInterval: autoRefresh && !isDemoMode ? 30000 : false,
+    retry: isDemoMode ? 0 : 2
   })
 
   const navItems = [

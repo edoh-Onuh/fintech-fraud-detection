@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { authAPI } from '../services/api'
 import { Shield, AlertCircle, Lock, User, ArrowRight, Sparkles, Zap } from 'lucide-react'
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onDemoMode }) {
   const [username, setUsername] = useState('demo')
   const [password, setPassword] = useState('demo123')
   const [loading, setLoading] = useState(false)
@@ -25,7 +25,7 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#035351] via-[#13635d] to-[#035351] relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-[#035351] via-[#13635d] to-[#035351] relative overflow-hidden flex items-center justify-center p-4">
       {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#51a97d]/30 rounded-full filter blur-3xl animate-pulse"></div>
@@ -38,7 +38,7 @@ export default function Login({ onLogin }) {
 
       <div className="relative w-full max-w-md">
         {/* Glow effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-[#51a97d] via-[#92eca2] to-[#51a97d] rounded-3xl blur-lg opacity-30 animate-pulse"></div>
+        <div className="absolute -inset-1 bg-linear-to-r from-[#51a97d] via-[#92eca2] to-[#51a97d] rounded-3xl blur-lg opacity-30 animate-pulse"></div>
 
         <div className="relative backdrop-blur-xl bg-white/95 border-2 border-[#51a97d]/30 rounded-3xl p-8 sm:p-10 shadow-2xl">
           {/* Decorative corner elements */}
@@ -48,24 +48,24 @@ export default function Login({ onLogin }) {
           {/* Logo & Header */}
           <div className="text-center mb-8">
             <div className="relative inline-block mb-4">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#51a97d] to-[#92eca2] rounded-2xl blur-md opacity-75 animate-pulse"></div>
-              <div className="relative p-4 bg-gradient-to-br from-[#13635d] to-[#035351] rounded-2xl shadow-xl">
+              <div className="absolute inset-0 bg-linear-to-r from-[#51a97d] to-[#92eca2] rounded-2xl blur-md opacity-75 animate-pulse"></div>
+              <div className="relative p-4 bg-linear-to-br from-[#13635d] to-[#035351] rounded-2xl shadow-xl">
                 <Shield className="w-10 h-10 text-[#92eca2]" strokeWidth={2.5} />
               </div>
             </div>
-            <h1 className="text-4xl font-black bg-gradient-to-r from-[#13635d] to-[#51a97d] bg-clip-text text-transparent mb-2">JED 24</h1>
+            <h1 className="text-4xl font-black bg-linear-to-r from-[#13635d] to-[#51a97d] bg-clip-text text-transparent mb-2">JED 24</h1>
             <p className="text-[#51a97d] font-bold text-sm tracking-widest uppercase">Enterprise Fraud Intelligence</p>
             <div className="flex items-center justify-center mt-3 space-x-2">
-              <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#51a97d]/50"></div>
+              <div className="h-px w-12 bg-linear-to-r from-transparent to-[#51a97d]/50"></div>
               <Sparkles className="w-4 h-4 text-[#51a97d]" />
-              <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#51a97d]/50"></div>
+              <div className="h-px w-12 bg-linear-to-l from-transparent to-[#51a97d]/50"></div>
             </div>
           </div>
 
           {/* Error */}
           {error && (
             <div className="mb-6 flex items-center space-x-3 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
               <span className="text-red-700 font-semibold text-sm">{error}</span>
             </div>
           )}
@@ -113,9 +113,9 @@ export default function Login({ onLogin }) {
             <button
               type="submit"
               disabled={loading}
-              className="relative w-full group overflow-hidden py-4 bg-gradient-to-r from-[#13635d] to-[#035351] text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-[#51a97d]/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
+              className="relative w-full group overflow-hidden py-4 bg-linear-to-r from-[#13635d] to-[#035351] text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-[#51a97d]/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#51a97d] to-[#92eca2] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-linear-to-r from-[#51a97d] to-[#92eca2] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <span className="relative flex items-center justify-center space-x-2">
                 {loading ? (
                   <>
@@ -134,20 +134,27 @@ export default function Login({ onLogin }) {
           </form>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-[#e9f1f1] to-[#e9f1f1]/50 rounded-xl border-2 border-[#51a97d]/20">
+          <div className="mt-6 p-4 bg-linear-to-r from-[#e9f1f1] to-[#e9f1f1]/50 rounded-xl border-2 border-[#51a97d]/20">
             <p className="text-xs font-bold text-[#13635d] uppercase tracking-wider mb-2 flex items-center">
               <Sparkles className="w-3 h-3 mr-1.5 text-[#51a97d]" />
               Demo Credentials
             </p>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm mb-3">
               <span className="text-[#51a97d] font-semibold">Username: <span className="text-[#13635d] font-bold">demo</span></span>
               <span className="text-[#51a97d]/30">|</span>
               <span className="text-[#51a97d] font-semibold">Password: <span className="text-[#13635d] font-bold">demo123</span></span>
             </div>
+            <button
+              type="button"
+              onClick={onDemoMode}
+              className="w-full py-2 rounded-lg bg-[#51a97d]/15 border border-[#51a97d]/30 text-[#13635d] text-sm font-bold hover:bg-[#51a97d]/25 transition-colors"
+            >
+              ⚡ Enter Demo Mode (No Backend Required)
+            </button>
           </div>
 
           {/* Bottom gradient line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#13635d] via-[#51a97d] to-[#92eca2] rounded-b-3xl"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-[#13635d] via-[#51a97d] to-[#92eca2] rounded-b-3xl"></div>
         </div>
       </div>
     </div>
