@@ -37,7 +37,7 @@ export default function StatsCard({ title, value, icon, color = 'blue', trend, s
         <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100 truncate">{subtitle}</p>
       )}
 
-      <div className={`absolute bottom-0 left-0 right-0 h-[2px] ${c.accent} opacity-25`} />
+      <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${c.accent} opacity-25`} />
     </div>
   )
 }

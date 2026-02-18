@@ -5,13 +5,13 @@ export default function Header({ user, onLogout, autoRefresh, setAutoRefresh }) 
   const [showNotifications, setShowNotifications] = useState(false)
   
   return (
-    <header className="bg-gradient-to-r from-[#13635d] via-[#035351] to-[#13635d] shadow-lg">
+    <header className="bg-linear-to-r from-[#13635d] via-[#035351] to-[#13635d] shadow-lg">
       {/* Main bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="bg-gradient-to-br from-[#92eca2] to-[#51a97d] p-1.5 rounded-lg">
+            <div className="bg-linear-to-br from-[#92eca2] to-[#51a97d] p-1.5 rounded-lg">
               <Zap className="text-[#13635d] w-5 h-5" strokeWidth={3} />
             </div>
             <div>
@@ -54,10 +54,10 @@ export default function Header({ user, onLogout, autoRefresh, setAutoRefresh }) 
 
             {/* User */}
             <div className="flex items-center gap-1.5 bg-white/10 rounded-md px-2 py-1 cursor-pointer hover:bg-white/15 transition-colors">
-              <div className="w-6 h-6 bg-gradient-to-br from-[#51a97d] to-[#92eca2] rounded-full flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 bg-linear-to-br from-[#51a97d] to-[#92eca2] rounded-full flex items-center justify-center shrink-0">
                 <User size={12} className="text-[#13635d]" strokeWidth={2.5} />
               </div>
-              <span className="hidden sm:inline text-white text-xs font-medium truncate max-w-[80px]">{user?.username || 'Admin'}</span>
+              <span className="hidden sm:inline text-white text-xs font-medium truncate max-w-20">{user?.username || 'Admin'}</span>
             </div>
 
             {/* Logout */}
