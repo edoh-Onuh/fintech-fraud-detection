@@ -521,6 +521,8 @@ async def startup_event():
         logger.info("Demo user created: demo / demo123")
     except ValueError:
         logger.info("Demo user already exists")
+    except Exception as e:
+        logger.error(f"Failed to create demo user: {type(e).__name__}: {e}")
     
     # Log startup
     audit_logger.log_event(
