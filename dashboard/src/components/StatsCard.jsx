@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
-export default function StatsCard({ title, value, icon, color = 'blue', trend, subtitle }) {
+export default function StatsCard({ title, value, icon: IconComponent, color = 'blue', trend, subtitle }) {
   const colors = {
     blue:   { iconBg: 'bg-[#13635d]', border: 'border-[#51a97d]/25', accent: 'bg-[#13635d]' },
     red:    { iconBg: 'bg-red-500',    border: 'border-red-200',       accent: 'bg-red-500' },
@@ -29,7 +29,7 @@ export default function StatsCard({ title, value, icon, color = 'blue', trend, s
           </div>
         </div>
         <div className={`shrink-0 p-2.5 ${c.iconBg} rounded-lg text-white`}>
-          {icon}
+          {IconComponent && <IconComponent className="w-5 h-5" />}
         </div>
       </div>
       
