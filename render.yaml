@@ -14,5 +14,7 @@ services:
         generateValue: true
       - key: ENVIRONMENT
         value: production
+      - key: CUDA_VISIBLE_DEVICES
+        value: ""
     healthCheckPath: /health
     autoDeploy: true

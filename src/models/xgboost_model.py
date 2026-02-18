@@ -8,7 +8,10 @@ from typing import Dict, List, Optional, Any
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
-import shap
+try:
+    import shap
+except ImportError:
+    shap = None
 import logging
 import joblib
 from pathlib import Path
@@ -45,7 +48,7 @@ class XGBoostFraudDetector(FraudDetectionModel):
         self.scale_pos_weight = scale_pos_weight
         
         self.model: Optional[xgb.XGBClassifier] = None
-        self.explainer: Optional[shap.TreeExplainer] = None
+        self.explainer = None  # shap.TreeExplainer (optional)
         self.threshold = 0.5
         
     def train(
@@ -114,8 +117,9 @@ class XGBoostFraudDetector(FraudDetectionModel):
         
         self.is_trained = True
         
-        # Initialize SHAP explainer
-        self.explainer = shap.TreeExplainer(self.model)
+        # Initialize SHAP explainer (optional)
+        if shap is not None:
+            self.explainer = shap.TreeExplainer(self.model)
         
         # Calculate metrics
         y_pred = self.predict(X_val)
@@ -277,7 +281,10 @@ class XGBoostFraudDetector(FraudDetectionModel):
         self.metadata = saved_data['metadata']
         
         self.is_trained = True
-        self.explainer = shap.TreeExplainer(self.model)
+        if shap is not None:
+            self.explainer = shap.TreeExplainer(self.model)
+        else:
+            logger.warning("shap not installed — SHAP explanations unavailable")
         
         logger.info(f"Model loaded from {load_path}")
     
