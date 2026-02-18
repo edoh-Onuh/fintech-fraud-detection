@@ -44,13 +44,47 @@ export default function Header({ user, onLogout, autoRefresh, setAutoRefresh }) 
             </button>
 
             {/* Notifications */}
-            <button
-              className="relative p-1.5 bg-white/10 rounded-md hover:bg-white/15 transition-colors"
-              onClick={() => setShowNotifications(!showNotifications)}
-            >
-              <Bell size={15} className="text-[#92eca2]" />
-              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">3</span>
-            </button>
+            <div className="relative">
+              <button
+                className="relative p-1.5 bg-white/10 rounded-md hover:bg-white/15 transition-colors"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell size={15} className="text-[#92eca2]" />
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">3</span>
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#51a97d]/20 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="p-3 border-b border-[#51a97d]/10 bg-[#e9f1f1]/40 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-[#13635d]">Notifications</h3>
+                    <span className="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">3 new</span>
+                  </div>
+                  <div className="divide-y divide-[#51a97d]/10">
+                    {[
+                      { title: 'Velocity spike detected', sub: 'Account user_789 — critical', time: '2m ago', dot: 'bg-red-500' },
+                      { title: 'Model accuracy alert', sub: 'XGBoost accuracy dropped 3.2%', time: '15m ago', dot: 'bg-orange-400' },
+                      { title: 'Daily report ready', sub: 'Q1 fraud summary available', time: '1h ago', dot: 'bg-blue-400' },
+                    ].map((n, i) => (
+                      <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 hover:bg-[#e9f1f1]/30 cursor-pointer transition-colors">
+                        <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.dot}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-[#13635d] truncate">{n.title}</p>
+                          <p className="text-[10px] text-gray-500 truncate">{n.sub}</p>
+                          <p className="text-[9px] text-gray-400 mt-0.5">{n.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2 border-t border-[#51a97d]/10 text-center">
+                    <button
+                      className="inline-flex items-center justify-center text-xs font-semibold text-[#51a97d] hover:text-[#13635d] transition-colors py-1 px-3"
+                      onClick={() => setShowNotifications(false)}
+                    >
+                      Dismiss all
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* User */}
             <div className="flex items-center gap-1.5 bg-white/10 rounded-md px-2 py-1 cursor-pointer hover:bg-white/15 transition-colors">

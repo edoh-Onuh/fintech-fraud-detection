@@ -111,28 +111,28 @@ export default function Dashboard({ user, onLogout }) {
     {
       title: 'Total Transactions',
       value: metrics?.total_transactions?.toLocaleString() ?? '—',
-      change: '+12.5%',
+      trend: '+12.5%',
       icon: Activity,
       color: 'blue'
     },
     {
       title: 'Fraud Detected',
       value: metrics?.fraud_detected?.toLocaleString() ?? '—',
-      change: '-8.3%',
+      trend: '-8.3%',
       icon: ShieldAlert,
       color: 'red'
     },
     {
       title: 'Approval Rate',
       value: metrics?.approval_rate ? `${metrics.approval_rate}%` : '—',
-      change: '+2.1%',
+      trend: '+2.1%',
       icon: CheckCircle,
       color: 'green'
     },
     {
       title: 'Avg Response',
       value: metrics?.avg_response_time ? `${metrics.avg_response_time}ms` : '—',
-      change: '-15ms',
+      trend: '-15ms',
       icon: Clock,
       color: 'purple'
     }

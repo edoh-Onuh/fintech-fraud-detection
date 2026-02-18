@@ -18,6 +18,8 @@ export default function TransactionMonitor({ systemHealth }) {
     device_id: 'device_xyz'
   })
 
+  const isDemoMode = localStorage.getItem('token') === 'demo_offline_token'
+
   const handleInputChange = (field, value) => {
     setTransaction(prev => ({ ...prev, [field]: value }))
   }
@@ -25,13 +27,33 @@ export default function TransactionMonitor({ systemHealth }) {
   const handleTest = async () => {
     setLoading(true)
     setResult(null)
+
+    if (isDemoMode) {
+      await new Promise(r => setTimeout(r, 900))
+      const amt = parseFloat(transaction.amount)
+      setResult({
+        transaction_id: transaction.transaction_id,
+        decision: amt > 5000 ? 'review' : amt > 500 ? 'approve' : 'approve',
+        fraud_score: amt > 5000 ? 0.71 : amt > 500 ? 0.18 : 0.042,
+        risk_level: amt > 5000 ? 'high' : amt > 500 ? 'medium' : 'low',
+        processing_time_ms: 38.5,
+        top_risk_factors: [
+          { feature: 'transaction_velocity', contribution: 0.021 },
+          { feature: 'amount_deviation', contribution: amt > 5000 ? 0.35 : -0.015 },
+          { feature: 'merchant_risk_score', contribution: 0.008 },
+        ]
+      })
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fraudAPI.detectFraud(transaction)
       setResult(response.data)
     } catch (error) {
       setResult({
         error: true,
-        message: error.response?.data?.detail || 'Failed to process transaction'
+        message: error.response?.data?.detail || 'No backend available. Use Demo Mode to test without a server.'
       })
     } finally {
       setLoading(false)

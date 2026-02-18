@@ -159,19 +159,19 @@ export default function Recommendations() {
                   <div className="px-4 pb-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => alert(`✅ Action: ${rec.action}\nID: ${rec.id}`)}
-                      className="px-3 py-1.5 bg-[#13635d] text-white rounded-md text-xs font-bold hover:bg-[#035351] transition-colors"
+                      className="inline-flex items-center justify-center px-3 py-1.5 bg-[#13635d] text-white rounded-md text-xs font-bold hover:bg-[#035351] transition-colors"
                     >
                       {rec.action}
                     </button>
                     <button
                       onClick={() => alert(`📊 ${rec.title}\n\n${rec.description}\n\nImpact: ${rec.impact}`)}
-                      className="px-3 py-1.5 border border-[#51a97d] text-[#13635d] rounded-md text-xs font-bold hover:bg-[#e9f1f1] transition-colors"
+                      className="inline-flex items-center justify-center px-3 py-1.5 border border-[#51a97d] text-[#13635d] rounded-md text-xs font-bold hover:bg-[#e9f1f1] transition-colors"
                     >
                       View Details
                     </button>
                     <button
                       onClick={() => { if (confirm(`Dismiss "${rec.title}"?`)) alert('✓ Dismissed.') }}
-                      className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-md text-xs font-bold hover:bg-gray-50 transition-colors"
+                      className="inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-gray-600 rounded-md text-xs font-bold hover:bg-gray-50 transition-colors"
                     >
                       Dismiss
                     </button>

@@ -149,7 +149,7 @@ export default function FraudPatterns() {
 
               {/* Stats row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-[#51a97d]/10">
-                <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-r border-[#51a97d]/10">
+                <div className="px-4 py-2.5 border-r border-b sm:border-b-0 border-[#51a97d]/10">
                   <p className="text-[10px] text-[#51a97d] font-semibold uppercase">Confidence</p>
                   <p className="text-lg font-bold text-[#13635d]">{pattern.confidence}%</p>
                 </div>
@@ -157,7 +157,7 @@ export default function FraudPatterns() {
                   <p className="text-[10px] text-[#51a97d] font-semibold uppercase">Occurrences</p>
                   <p className="text-lg font-bold text-[#13635d]">{pattern.occurrences}</p>
                 </div>
-                <div className="px-4 py-2.5 sm:border-r border-[#51a97d]/10">
+                <div className="px-4 py-2.5 border-r border-[#51a97d]/10">
                   <p className="text-[10px] text-[#51a97d] font-semibold uppercase">Impact</p>
                   <p className="text-sm font-bold text-[#13635d] truncate">{pattern.impact}</p>
                 </div>
@@ -182,13 +182,13 @@ export default function FraudPatterns() {
                     ))}
                   </ul>
                   <div className="flex flex-wrap gap-2">
-                    <button className="px-3 py-1.5 bg-[#13635d] text-white rounded-md text-xs font-bold hover:bg-[#035351] transition-colors">
+                    <button className="inline-flex items-center justify-center px-3 py-1.5 bg-[#13635d] text-white rounded-md text-xs font-bold hover:bg-[#035351] transition-colors">
                       Create Alert Rule
                     </button>
-                    <button className="px-3 py-1.5 border border-[#51a97d] text-[#13635d] rounded-md text-xs font-bold hover:bg-[#e9f1f1] transition-colors">
+                    <button className="inline-flex items-center justify-center px-3 py-1.5 border border-[#51a97d] text-[#13635d] rounded-md text-xs font-bold hover:bg-[#e9f1f1] transition-colors">
                       View Accounts
                     </button>
-                    <button className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-md text-xs font-bold hover:bg-gray-50 transition-colors">
+                    <button className="inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-gray-600 rounded-md text-xs font-bold hover:bg-gray-50 transition-colors">
                       Export Data
                     </button>
                   </div>
