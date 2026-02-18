@@ -1,0 +1,24 @@
+# Lean requirements for API deployment only
+# (Full requirements.txt includes ML training, viz, etc. — not needed at runtime)
+
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.4.0
+pydantic-settings>=2.0.0
+python-multipart>=0.0.6
+
+# ML inference
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+joblib>=1.3.0
+
+# Security
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.1.0
+cryptography>=41.0.0
+
+# Utils
+python-dotenv>=1.0.0
+scipy>=1.11.0

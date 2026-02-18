@@ -71,8 +71,8 @@ data/*.parquet
 data/raw/
 data/processed/
 
-# Models
-models/*.pkl
+# Models (allow trained models needed for API)
+# models/*.pkl  -- unignored: needed for Render deployment
 models/*.h5
 models/*.pt
 models/*.onnx
