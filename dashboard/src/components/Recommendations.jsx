@@ -53,14 +53,9 @@ export default function Recommendations() {
     }
   }
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/metrics')
-      const data = await response.json()
-      setStats({ criticalAlerts: 3, preventedFraud: data.fraud_detected || 0, modelAccuracy: 99.94, avgResponseTime: data.avg_response_time || 0 })
-    } catch {
-      setStats({ criticalAlerts: 3, preventedFraud: 42, modelAccuracy: 99.94, avgResponseTime: 45 })
-    }
+  const fetchStats = () => {
+    // Use static demo data — no backend dependency (avoids failed requests on Vercel)
+    setStats({ criticalAlerts: 3, preventedFraud: 42, modelAccuracy: 99.94, avgResponseTime: 45 })
   }
 
   const priorityStyles = {

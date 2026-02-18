@@ -151,10 +151,10 @@ export default function AnalysisReport() {
           <div className="px-2 pb-2">
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
-                <Pie data={reportData.fraudByType} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                <Pie data={reportData.fraudByType} cx="50%" cy="50%" outerRadius={85} dataKey="value" labelLine={false}>
                   {reportData.fraudByType.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value, name) => [`£${value.toLocaleString()}`, name]} />
               </PieChart>
             </ResponsiveContainer>
           </div>
