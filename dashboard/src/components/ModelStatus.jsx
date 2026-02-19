@@ -1,6 +1,88 @@
-import { CheckCircle, AlertCircle, Circle, Cpu, Zap, Activity, TrendingUp } from 'lucide-react'
+import { CheckCircle, AlertCircle, Circle, Cpu, Zap, Brain } from 'lucide-react'
 
 export default function ModelStatus({ models }) {
+  const modelList = models?.models || []
+
+  const getStatus = (model) => {
+    if (!model.is_trained) return { label: 'Not Trained', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20', dot: 'bg-slate-500' }
+    if (model.is_active)   return { label: 'Active',      color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', dot: 'bg-emerald-400' }
+    return                        { label: 'Standby',     color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   dot: 'bg-amber-400' }
+  }
+
+  return (
+    <div className="bg-[#0d1829] border border-white/6 rounded-xl overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-5 pb-4 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-500/15 rounded-lg">
+            <Cpu className="w-4 h-4 text-purple-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Model Status</h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">{modelList.length} registered · {modelList.filter(m => m.is_active).length} active</p>
+          </div>
+        </div>
+        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+          {modelList.filter(m => m.is_active).length} Active
+        </span>
+      </div>
+
+      {/* Model list */}
+      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+        {modelList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="p-4 bg-white/4 rounded-full mb-3">
+              <Brain className="w-8 h-8 text-slate-600" />
+            </div>
+            <p className="text-slate-400 font-semibold text-sm">No models registered</p>
+            <p className="text-slate-600 text-xs mt-1">Train a model to get started</p>
+          </div>
+        ) : (
+          modelList.map((model, index) => {
+            const st = getStatus(model)
+            return (
+              <div key={index} className={`bg-white/4 border ${st.border} rounded-xl p-4`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${st.dot} ${model.is_active ? 'animate-pulse' : ''}`} />
+                      <h4 className="font-bold text-white text-sm truncate">{model.model_name}</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-500 pl-4">v{model.version}</p>
+                  </div>
+                  <span className={`shrink-0 text-[10px] font-bold ${st.color} ${st.bg} border ${st.border} px-2 py-0.5 rounded-lg`}>{st.label}</span>
+                </div>
+
+                {model.metadata && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {model.metadata.accuracy != null && (
+                      <div className="bg-white/4 rounded-lg p-2.5 text-center">
+                        <p className="text-[9px] text-slate-600 font-semibold uppercase mb-1">Accuracy</p>
+                        <p className="text-base font-black text-emerald-400">{(model.metadata.accuracy * 100).toFixed(1)}%</p>
+                      </div>
+                    )}
+                    {model.metadata.auc_roc != null && (
+                      <div className="bg-white/4 rounded-lg p-2.5 text-center">
+                        <p className="text-[9px] text-slate-600 font-semibold uppercase mb-1">AUC-ROC</p>
+                        <p className="text-base font-black text-blue-400">{model.metadata.auc_roc.toFixed(3)}</p>
+                      </div>
+                    )}
+                    {model.feature_count > 0 && (
+                      <div className="bg-white/4 rounded-lg p-2.5 text-center">
+                        <p className="text-[9px] text-slate-600 font-semibold uppercase mb-1">Features</p>
+                        <p className="text-base font-black text-purple-400">{model.feature_count}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
   const modelList = models?.models || []
 
   const getStatus = (model) => {

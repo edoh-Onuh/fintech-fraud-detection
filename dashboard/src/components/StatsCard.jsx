@@ -1,43 +1,44 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function StatsCard({ title, value, icon: IconComponent, color = 'blue', trend, subtitle }) {
-  const colors = {
-    blue:   { iconBg: 'bg-[#13635d]', border: 'border-[#51a97d]/25', accent: 'bg-[#13635d]' },
-    red:    { iconBg: 'bg-red-500',    border: 'border-red-200',       accent: 'bg-red-500' },
-    green:  { iconBg: 'bg-[#51a97d]',  border: 'border-[#92eca2]/40', accent: 'bg-[#51a97d]' },
-    purple: { iconBg: 'bg-[#035351]',  border: 'border-[#51a97d]/25', accent: 'bg-[#035351]' },
-    orange: { iconBg: 'bg-[#51a97d]',  border: 'border-[#51a97d]/25', accent: 'bg-[#51a97d]' },
+  const palette = {
+    blue:   { iconBg: 'bg-blue-500/15',    iconColor: 'text-blue-400',    accent: 'from-blue-500',    border: 'border-blue-500/15' },
+    red:    { iconBg: 'bg-red-500/15',     iconColor: 'text-red-400',     accent: 'from-red-500',     border: 'border-red-500/15'  },
+    green:  { iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', accent: 'from-emerald-500', border: 'border-emerald-500/15' },
+    purple: { iconBg: 'bg-purple-500/15',  iconColor: 'text-purple-400',  accent: 'from-purple-500',  border: 'border-purple-500/15' },
+    orange: { iconBg: 'bg-orange-500/15',  iconColor: 'text-orange-400',  accent: 'from-orange-500',  border: 'border-orange-500/15' },
   }
 
-  const c = colors[color] || colors.blue
+  const p = palette[color] || palette.blue
+  const isPositive = trend?.startsWith('+')
 
   return (
-    <div className={`relative bg-white ${c.border} border rounded-xl p-4 shadow-sm overflow-hidden`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1 truncate">{title}</p>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <h3 className="text-2xl font-extrabold text-gray-900 leading-tight truncate">{value}</h3>
-            {trend && (
-              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                trend.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              }`}>
-                {trend.startsWith('+') ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                {trend}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className={`shrink-0 p-2.5 ${c.iconBg} rounded-lg text-white`}>
-          {IconComponent && <IconComponent className="w-5 h-5" />}
+    <div className={`relative bg-[#0d1829] border ${p.border} rounded-xl p-5 overflow-hidden group hover:border-white/10 transition-colors`}>
+      {/* Top row */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider leading-tight">{title}</p>
+        <div className={`shrink-0 p-2.5 ${p.iconBg} rounded-xl`}>
+          {IconComponent && <IconComponent className={`w-5 h-5 ${p.iconColor}`} />}
         </div>
       </div>
-      
-      {subtitle && (
-        <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100 truncate">{subtitle}</p>
-      )}
 
-      <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${c.accent} opacity-25`} />
+      {/* Value */}
+      <div className="flex items-end justify-between gap-2">
+        <h3 className="text-3xl font-black text-white leading-none tracking-tight">{value}</h3>
+        {trend && (
+          <span className={`inline-flex items-center gap-0.5 px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap mb-0.5 ${
+            isPositive ? 'bg-emerald-500/12 text-emerald-400' : 'bg-red-500/12 text-red-400'
+          }`}>
+            {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+            {trend}
+          </span>
+        )}
+      </div>
+
+      {subtitle && <p className="text-[11px] text-slate-600 mt-2 truncate">{subtitle}</p>}
+
+      {/* Bottom accent */}
+      <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-linear-to-r ${p.accent} to-transparent opacity-40`} />
     </div>
   )
 }
