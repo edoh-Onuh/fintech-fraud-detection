@@ -1,7 +1,12 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Lightbulb, AlertTriangle, TrendingUp, Shield, Bell, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
+import { analyticsAPI } from '../services/api'
 
-const recommendations = [
+const iconMap = { Security: Shield, Rules: TrendingUp, 'ML Model': AlertTriangle, Operations: Bell }
+const colorMap = { critical: 'border-l-red-500', high: 'border-l-orange-500', medium: 'border-l-blue-500', low: 'border-l-slate-500' }
+
+const DEMO_RECOMMENDATIONS = [
   {
     id: 1, title: 'Enable Adaptive Authentication', priority: 'critical', category: 'Security',
     description: 'Implement step-up authentication for high-risk transactions based on real-time risk scoring.',
@@ -52,6 +57,33 @@ const categoryBadge = {
 
 export default function Recommendations() {
   const [expanded, setExpanded] = useState(null)
+
+  // Fetch live recommendations from API
+  const { data: liveRecs } = useQuery({
+    queryKey: ['recommendations'],
+    queryFn: async () => {
+      const r = await analyticsAPI.getRecommendations()
+      const apiData = r.data
+      return (Array.isArray(apiData) ? apiData : []).map(rec => ({
+        id: rec.id || rec.priority + '_' + Math.random(),
+        title: rec.title,
+        priority: (rec.priority || 'medium').toLowerCase(),
+        category: rec.category || 'Security',
+        description: rec.description,
+        impact: rec.description, // Use description as impact if no separate field
+        recommendation: rec.action || rec.description,
+        confidence: rec.confidence || 80,
+        action: rec.action || 'Review',
+        icon: iconMap[rec.category] || Shield,
+        color: colorMap[(rec.priority || 'medium').toLowerCase()] || 'border-l-blue-500'
+      }))
+    },
+    staleTime: 60000,
+    refetchInterval: 60000,
+    placeholderData: DEMO_RECOMMENDATIONS
+  })
+
+  const recommendations = liveRecs?.length ? liveRecs : DEMO_RECOMMENDATIONS
 
   const stats = [
     { label: 'Active', value: recommendations.length, color: 'text-blue-400' },

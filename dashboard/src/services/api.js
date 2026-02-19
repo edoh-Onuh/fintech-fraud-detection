@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://jed24-api.onrender.com'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -68,6 +68,21 @@ export const modelsAPI = {
 export const auditAPI = {
   getEvents: (params) => 
     api.get('/audit/events', { params }),
+}
+
+export const analyticsAPI = {
+  getPatterns: (days = 7) =>
+    api.get('/analytics/patterns', { params: { days, token: 'bearer' } }),
+  getRiskTrends: (days = 30) =>
+    api.get('/analytics/risk-trends', { params: { days, token: 'bearer' } }),
+  getGeographicInsights: () =>
+    api.get('/analytics/geographic-insights', { params: { token: 'bearer' } }),
+  getRecommendations: (priority_filter) =>
+    api.post('/analytics/recommendations', null, { params: { token: 'bearer', ...(priority_filter ? { priority_filter } : {}) } }),
+  getBusinessImpact: (days = 30) =>
+    api.get('/analytics/business-impact', { params: { days, token: 'bearer' } }),
+  getModelComparison: () =>
+    api.get('/analytics/model-comparison', { params: { token: 'bearer' } }),
 }
 
 export default api

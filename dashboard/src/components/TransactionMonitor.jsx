@@ -1,39 +1,75 @@
 import { useState } from 'react'
 import { Search, AlertTriangle, CheckCircle, Shield, Activity, Send, Loader2, Cpu } from 'lucide-react'
+import { api } from '../services/api'
 
 export default function TransactionMonitor({ systemHealth }) {
   const [formData, setFormData] = useState({ amount: '', merchant: '', category: 'online', location: '' })
   const [result, setResult] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleAnalyze = async (e) => {
     e.preventDefault()
     setAnalyzing(true)
-    await new Promise(r => setTimeout(r, 1500))
+    setError(null)
 
     const amount = parseFloat(formData.amount) || 0
-    const score = amount > 5000 ? 0.85 : amount > 1000 ? 0.45 : 0.12
-    const decision = score > 0.7 ? 'BLOCKED' : score > 0.4 ? 'REVIEW' : 'APPROVED'
+    const txnId = `txn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
-    setResult({
-      decision,
-      score: (score * 100).toFixed(1),
-      risk: score > 0.7 ? 'Critical' : score > 0.4 ? 'Medium' : 'Low',
-      timestamp: new Date().toLocaleString('en-GB'),
-      factors: [
-        amount > 5000 && 'High transaction amount',
-        formData.category === 'international' && 'International transaction',
-        'Velocity check passed',
-        'Device fingerprint verified',
-        amount > 2000 && 'Above average transaction value'
-      ].filter(Boolean),
-      models: [
-        'XGBoost: ' + (score * 100 - 2).toFixed(1) + '%',
-        'Neural Net: ' + (score * 100 + 1).toFixed(1) + '%',
-        'Ensemble: ' + (score * 100).toFixed(1) + '%'
-      ]
-    })
-    setAnalyzing(false)
+    // Map form fields to backend TransactionRequest
+    const payload = {
+      transaction_id: txnId,
+      user_id: 'dashboard_user',
+      merchant_id: formData.merchant || 'unknown_merchant',
+      amount,
+      currency: 'GBP',
+      transaction_type: 'purchase',
+      channel: formData.category === 'in-store' ? 'pos' : formData.category === 'atm' ? 'atm' : formData.category === 'international' ? 'online' : 'online',
+      country: formData.location?.split(',').pop()?.trim() || 'GB',
+      city: formData.location?.split(',')[0]?.trim() || undefined,
+    }
+
+    try {
+      const r = await api.post('/detect/fraud', payload)
+      const data = r.data
+
+      // Map backend FraudDetectionResponse to display format
+      const decision = data.decision?.toUpperCase() || (data.is_fraud ? 'BLOCKED' : data.fraud_score > 0.4 ? 'REVIEW' : 'APPROVED')
+      setResult({
+        decision,
+        score: (data.fraud_score * 100).toFixed(1),
+        risk: data.risk_level || (data.fraud_score > 0.7 ? 'Critical' : data.fraud_score > 0.4 ? 'Medium' : 'Low'),
+        timestamp: new Date().toLocaleString('en-GB'),
+        processingTime: data.processing_time_ms ? `${data.processing_time_ms.toFixed(1)}ms` : null,
+        modelVersion: data.model_version || null,
+        factors: (data.top_risk_factors || []).map(f => f.feature || f.name || f.description || JSON.stringify(f)),
+        models: data.model_version ? [`Model: ${data.model_version} — Score: ${(data.fraud_score * 100).toFixed(1)}%`] : []
+      })
+    } catch (err) {
+      // Fallback to local scoring if API unavailable
+      console.warn('Fraud API unavailable, using local scoring:', err.message)
+      const score = amount > 5000 ? 0.85 : amount > 1000 ? 0.45 : 0.12
+      const decision = score > 0.7 ? 'BLOCKED' : score > 0.4 ? 'REVIEW' : 'APPROVED'
+      setResult({
+        decision,
+        score: (score * 100).toFixed(1),
+        risk: score > 0.7 ? 'Critical' : score > 0.4 ? 'Medium' : 'Low',
+        timestamp: new Date().toLocaleString('en-GB'),
+        processingTime: null,
+        modelVersion: null,
+        factors: [
+          amount > 5000 && 'High transaction amount',
+          formData.category === 'international' && 'International transaction',
+          'Velocity check passed',
+          'Device fingerprint verified',
+          amount > 2000 && 'Above average transaction value'
+        ].filter(Boolean),
+        models: ['Local scoring — API offline']
+      })
+      setError('API unavailable — showing local estimate')
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   const decisionStyles = {
@@ -168,7 +204,11 @@ export default function TransactionMonitor({ systemHealth }) {
                   </div>
                 </div>
 
-                <p className="text-[10px] text-slate-700 text-center">{result.timestamp}</p>
+                <p className="text-[10px] text-slate-700 text-center">
+                  {result.timestamp}
+                  {result.processingTime && <span className="ml-2 text-emerald-500">({result.processingTime})</span>}
+                </p>
+                {error && <p className="text-[10px] text-amber-500/80 text-center mt-1">{error}</p>}
               </div>
             )
           })() : (

@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp, BarChart3, Activity } from 'lucide-react'
+import { analyticsAPI } from '../services/api'
 
 const DEMO_DATA = [
   { time: '00:00', legitimate: 1245, fraudulent: 23, score: 0.92 },
@@ -15,6 +17,30 @@ const DEMO_DATA = [
 
 export default function FraudChart({ metrics, systemHealth }) {
   const [chartType, setChartType] = useState('area')
+
+  // Fetch live risk trends from the API
+  const { data: trendData } = useQuery({
+    queryKey: ['risk-trends'],
+    queryFn: async () => {
+      try {
+        const r = await analyticsAPI.getRiskTrends(14)
+        const raw = r.data
+        if (Array.isArray(raw) && raw.length > 0) {
+          return raw.map(d => ({
+            time: d.date?.slice(5) || d.date,  // MM-DD
+            legitimate: Math.round((d.total_amount || 0) / 100),
+            fraudulent: d.fraud_count || 0,
+            score: (d.avg_risk_score || 0) / 100
+          }))
+        }
+        return null
+      } catch { return null }
+    },
+    staleTime: 60000,
+    refetchInterval: 60000,
+  })
+
+  const chartData = trendData || DEMO_DATA
 
   const types = [
     { id: 'area', icon: Activity, label: 'Area' },
@@ -38,7 +64,7 @@ export default function FraudChart({ metrics, systemHealth }) {
     switch (chartType) {
       case 'line':
         return (
-          <LineChart data={DEMO_DATA}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis dataKey="time" tick={tickStyle} axisLine={false} tickLine={false} />
             <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
@@ -49,7 +75,7 @@ export default function FraudChart({ metrics, systemHealth }) {
         )
       case 'bar':
         return (
-          <BarChart data={DEMO_DATA}>
+          <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis dataKey="time" tick={tickStyle} axisLine={false} tickLine={false} />
             <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
@@ -60,7 +86,7 @@ export default function FraudChart({ metrics, systemHealth }) {
         )
       default:
         return (
-          <AreaChart data={DEMO_DATA}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="emeraldGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.25} />
@@ -82,8 +108,8 @@ export default function FraudChart({ metrics, systemHealth }) {
     }
   }
 
-  const peakHour = DEMO_DATA.reduce((max, d) => d.fraudulent > max.fraudulent ? d : max, DEMO_DATA[0])
-  const avgFraudRate = (DEMO_DATA.reduce((s, d) => s + d.fraudulent, 0) / DEMO_DATA.reduce((s, d) => s + d.legitimate + d.fraudulent, 0) * 100).toFixed(2)
+  const peakHour = chartData.reduce((max, d) => d.fraudulent > max.fraudulent ? d : max, chartData[0])
+  const avgFraudRate = (chartData.reduce((s, d) => s + d.fraudulent, 0) / chartData.reduce((s, d) => s + d.legitimate + d.fraudulent, 0) * 100).toFixed(2)
 
   return (
     <div className="bg-[#0a1628] border border-[#162032] rounded-2xl overflow-hidden hover:border-[#1e3050] transition-all duration-200 h-full flex flex-col">

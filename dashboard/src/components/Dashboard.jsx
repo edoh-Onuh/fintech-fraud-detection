@@ -47,7 +47,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const { data: metrics } = useQuery({
     queryKey: ['metrics'],
-    queryFn: async () => { try { const r = await api.get('/api/metrics'); return r.data } catch { return DEMO_METRICS } },
+    queryFn: async () => { try { const r = await api.get('/metrics'); return r.data } catch { return DEMO_METRICS } },
     refetchInterval: autoRefresh ? 30000 : false,
     placeholderData: DEMO_METRICS
   })
@@ -61,7 +61,15 @@ export default function Dashboard({ user, onLogout }) {
 
   const { data: models } = useQuery({
     queryKey: ['models'],
-    queryFn: async () => { try { const r = await api.get('/api/models'); return r.data } catch { return DEMO_MODELS } },
+    queryFn: async () => {
+      try {
+        const r = await api.get('/models')
+        const data = r.data
+        // Backend returns { count, models: [...] } — extract the array
+        const list = Array.isArray(data) ? data : data?.models || data
+        return Array.isArray(list) ? list : DEMO_MODELS
+      } catch { return DEMO_MODELS }
+    },
     refetchInterval: autoRefresh ? 60000 : false,
     placeholderData: DEMO_MODELS
   })
@@ -72,8 +80,8 @@ export default function Dashboard({ user, onLogout }) {
   const statsCards = [
     { title: 'Total Transactions', value: metrics?.total_transactions?.toLocaleString() || '—', icon: Activity, color: '#3b82f6', trend: '+12.5%', subtitle: 'vs last period' },
     { title: 'Fraud Detected', value: metrics?.fraud_detected?.toLocaleString() || '—', icon: ShieldAlert, color: '#ef4444', trend: '-8.3%', subtitle: 'fewer incidents' },
-    { title: 'Detection Rate', value: `${metrics?.accuracy || 99.2}%`, icon: CheckCircle, color: '#10b981', trend: '+0.3%', subtitle: 'model accuracy' },
-    { title: 'Response Time', value: metrics?.detection_speed || '< 50ms', icon: Clock, color: '#f59e0b', trend: '-15ms', subtitle: 'faster than avg' }
+    { title: 'Approval Rate', value: `${metrics?.approval_rate ?? 97.4}%`, icon: CheckCircle, color: '#10b981', trend: '+0.3%', subtitle: 'transaction approval' },
+    { title: 'Avg Response', value: `${metrics?.avg_response_time ?? 42}ms`, icon: Clock, color: '#f59e0b', trend: '-15ms', subtitle: 'faster than avg' }
   ]
 
   const renderContent = () => {
