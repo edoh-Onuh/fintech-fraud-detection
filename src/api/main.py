@@ -9,9 +9,11 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import time
+import os
+import jwt
 
 from ..models import XGBoostFraudDetector, EnsembleFraudDetector, ModelRegistry
 from ..realtime import Transaction, FraudResult, RealTimeFraudDetector
@@ -46,6 +48,9 @@ app.include_router(analytics_router)
 
 # Security
 security = HTTPBearer()
+JWT_SECRET = os.environ.get('JWT_SECRET', 'jed24-fraud-detection-secret-key-change-in-prod')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
 
 # Global state (in production, use dependency injection)
 auth_manager = AuthenticationManager()
@@ -130,18 +135,21 @@ class HealthResponse(BaseModel):
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(security)
 ) -> User:
-    """Validate token and return current user"""
+    """Validate JWT token and return current user"""
     token = credentials.credentials
-    
-    user = auth_manager.validate_session(token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-    
-    return user
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get('sub')
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        user = auth_manager.users.get(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
 async def require_role(required_roles: List[str]):
@@ -221,19 +229,25 @@ async def login(credentials: LoginRequest):
             detail="Invalid username or password"
         )
     
-    # Create session
-    session_id = auth_manager.create_session(user)
+    # Create JWT token
+    payload = {
+        'sub': user.user_id,
+        'username': user.username,
+        'roles': user.roles,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
+    }
+    access_token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     
     # Log successful login
     audit_logger.log_event(
         event_type=EventType.USER_LOGIN,
         user_id=user.user_id,
         status="success",
-        session_id=session_id
     )
     
     return LoginResponse(
-        access_token=session_id,
+        access_token=access_token,
         user_id=user.user_id,
         username=user.username,
         roles=user.roles

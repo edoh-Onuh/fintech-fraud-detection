@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Shield, Eye, EyeOff, Zap, Lock, User, AlertCircle, ArrowRight, Activity } from 'lucide-react'
+import { Shield, Eye, EyeOff, Lock, User, AlertCircle, ArrowRight, Activity } from 'lucide-react'
 import { authAPI } from '../services/api'
 
-export default function Login({ onLogin, onDemoMode }) {
+export default function Login({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -148,22 +148,7 @@ export default function Login({ onLogin, onDemoMode }) {
               </button>
             </form>
 
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#162032]" /></div>
-              <div className="relative flex justify-center"><span className="px-3 bg-[#0a1628] text-xs text-slate-600">or continue with</span></div>
-            </div>
-
-            {/* Demo Mode */}
-            <button
-              onClick={onDemoMode}
-              className="w-full py-3 bg-white/[0.03] border border-[#162032] text-white rounded-xl font-semibold text-sm hover:bg-white/[0.06] hover:border-[#1e3050] transition-all flex items-center justify-center gap-2"
-            >
-              <Zap className="w-4 h-4 text-amber-400" />
-              Launch Demo Mode
-            </button>
-
-            <p className="text-center text-xs text-slate-600 mt-4">
+            <p className="text-center text-xs text-slate-600 mt-6">
               Credentials: <span className="text-slate-400 font-medium">admin</span> / <span className="text-slate-400 font-medium">admin123</span> or <span className="text-slate-400 font-medium">demo</span> / <span className="text-slate-400 font-medium">demo123</span>
             </p>
           </div>
