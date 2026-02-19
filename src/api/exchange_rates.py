@@ -12,22 +12,50 @@ import json
 
 logger = logging.getLogger(__name__)
 
-FRANKFURTER_BASE = "https://api.frankfurter.dev/v1"
+# Try multiple Frankfurter mirrors (dev may be unreachable from some hosts)
+FRANKFURTER_URLS = [
+    "https://api.frankfurter.dev/v1",
+    "https://api.frankfurter.app",          # legacy mirror (no /v1 prefix)
+    "https://frankfurter.ecb.de/v1",        # ECB direct
+]
 
 # In-memory cache: { "GBP": { rates: {...}, fetched_at: timestamp } }
 _cache: Dict[str, dict] = {}
 CACHE_TTL_SECONDS = 3600  # 1 hour (ECB updates once/day ~16:00 CET)
+_working_base: Optional[str] = None  # remember which mirror works
 
 
 def _fetch_json(url: str, timeout: int = 10) -> Optional[dict]:
     """Fetch JSON from URL using stdlib (no extra deps)."""
     try:
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        req = urllib.request.Request(url, headers={
+            "Accept": "application/json",
+            "User-Agent": "JED24-FraudDetection/1.0",
+        })
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode())
     except Exception as e:
-        logger.warning(f"Exchange rate fetch failed: {e}")
+        logger.warning(f"Exchange rate fetch failed for {url}: {e}")
         return None
+
+
+def _fetch_with_fallback(path: str, timeout: int = 10) -> Optional[dict]:
+    """Try each Frankfurter mirror until one works."""
+    global _working_base
+    # Try cached working base first
+    if _working_base:
+        data = _fetch_json(f"{_working_base}{path}", timeout)
+        if data:
+            return data
+        _working_base = None  # reset if it stopped working
+
+    for base in FRANKFURTER_URLS:
+        data = _fetch_json(f"{base}{path}", timeout)
+        if data:
+            _working_base = base
+            logger.info(f"Using Frankfurter mirror: {base}")
+            return data
+    return None
 
 
 def get_latest_rates(base: str = "GBP") -> Optional[Dict[str, float]]:
@@ -41,7 +69,7 @@ def get_latest_rates(base: str = "GBP") -> Optional[Dict[str, float]]:
     if cached and (time.time() - cached["fetched_at"]) < CACHE_TTL_SECONDS:
         return cached["rates"]
 
-    data = _fetch_json(f"{FRANKFURTER_BASE}/latest?base={base}")
+    data = _fetch_with_fallback(f"/latest?base={base}")
     if data and "rates" in data:
         _cache[base] = {"rates": data["rates"], "fetched_at": time.time()}
         logger.info(f"Fetched {len(data['rates'])} exchange rates for {base}")
@@ -90,11 +118,11 @@ def get_historical_rates(
     if not end_date:
         end_date = datetime.utcnow().strftime("%Y-%m-%d")
 
-    url = f"{FRANKFURTER_BASE}/{start_date}..{end_date}?base={base}"
+    path = f"/{start_date}..{end_date}?base={base}"
     if symbols:
-        url += f"&symbols={','.join(s.upper() for s in symbols)}"
+        path += f"&symbols={','.join(s.upper() for s in symbols)}"
 
-    data = _fetch_json(url, timeout=15)
+    data = _fetch_with_fallback(path, timeout=15)
     if data and "rates" in data:
         return data
     return None
@@ -102,5 +130,5 @@ def get_historical_rates(
 
 def get_supported_currencies() -> Optional[Dict[str, str]]:
     """Get supported currency codes and full names."""
-    data = _fetch_json(f"{FRANKFURTER_BASE}/currencies")
+    data = _fetch_with_fallback("/currencies")
     return data  # { "AUD": "Australian Dollar", ... }
