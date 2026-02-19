@@ -1,21 +1,29 @@
-/* Dashboard Layout */
-.dashboard-container {
-  min-height: 100vh;
-  background: #070d1a;
+/* Dashboard-specific utilities */
+
+/* Sidebar transition */
+.sidebar-enter {
+  animation: slide-in-left 0.3s ease-out;
 }
 
-/* Skeleton loading — dark theme */
-.skeleton {
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0.04) 25%,
-    rgba(255,255,255,0.08) 50%,
-    rgba(255,255,255,0.04) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
-@keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-1px);
+}
+
+/* Glow effects */
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.1), 0 0 60px rgba(16, 185, 129, 0.03);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1), 0 0 60px rgba(239, 68, 68, 0.03);
 }

@@ -1,230 +1,180 @@
 import { useState } from 'react'
-import { authAPI } from '../services/api'
-import { Shield, AlertCircle, Lock, User, ArrowRight, Zap, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { Shield, Eye, EyeOff, Zap, Lock, User, AlertCircle, ArrowRight, Activity } from 'lucide-react'
 
 export default function Login({ onLogin, onDemoMode }) {
-  const [username, setUsername] = useState('demo')
-  const [password, setPassword] = useState('demo123')
-  const [loading, setLoading] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [showPw, setShowPw] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!username.trim() || !password.trim()) { setError('Please enter both username and password'); return }
     setError('')
     setLoading(true)
     try {
-      const response = await authAPI.login(username, password)
-      const { access_token, user_id, username: user, roles } = response.data
-      onLogin(access_token, { user_id, username: user, roles })
+      const API = import.meta.env.VITE_API_URL || 'https://jed24-api.onrender.com'
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username: username.trim(), password })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Invalid credentials')
+      onLogin(data.access_token, data.user || { username: username.trim() })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Check credentials and try again.')
+      setError(err.message === 'Failed to fetch' ? 'Server unavailable — use Demo Mode' : err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const features = [
-    'Real-time ML fraud detection',
-    'XGBoost + Ensemble AI models',
-    'GDPR-compliant audit logging',
-    '99.94% detection accuracy',
-  ]
-
   return (
-    <div className="min-h-screen flex bg-[#070d1a]">
-      {/* Left panel — branding (desktop only) */}
-      <div className="hidden lg:flex flex-col w-[52%] relative overflow-hidden bg-[#060c17] border-r border-white/5">
-        {/* Background mesh */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-120px] left-[-120px] w-[520px] h-[520px] bg-[#10b981]/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-[-100px] right-[-80px] w-[420px] h-[420px] bg-[#3b82f6]/8 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] bg-[#10b981]/5 rounded-full blur-2xl" />
-        </div>
-        {/* Dot pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #10b981 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+    <div className="min-h-screen bg-[#04070d] flex">
+      {/* Left — Branding Panel */}
+      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0 bg-linear-to-br from-[#10b981]/8 via-[#04070d] to-[#6366f1]/8" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_50%,rgba(16,185,129,0.06),transparent_60%)]" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
-        <div className="relative flex flex-col h-full px-14 py-14">
+        <div className="relative z-10 px-12 max-w-lg">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-auto">
-            <div className="p-2.5 bg-[#10b981] rounded-xl shadow-lg shadow-emerald-500/30">
-              <Shield className="w-6 h-6 text-[#060c17]" strokeWidth={2.5} />
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#10b981] to-[#059669] flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <span className="text-2xl font-black text-white tracking-tight">JED 24</span>
-              <p className="text-[11px] text-emerald-400/70 font-medium tracking-widest uppercase">Fraud Intelligence</p>
+              <h1 className="text-2xl font-bold text-white tracking-tight">JED 24</h1>
+              <p className="text-[10px] text-emerald-400/80 font-semibold tracking-[0.2em] uppercase">Fraud Intelligence</p>
             </div>
           </div>
 
-          {/* Hero copy */}
-          <div className="mt-16 mb-12">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5 mb-6">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-emerald-400 text-xs font-semibold">Live Threat Detection</span>
-            </div>
-            <h1 className="text-5xl xl:text-6xl font-black text-white leading-[1.07] mb-5">
-              Stop Fraud<br />
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-teal-400">Before It Starts</span>
-            </h1>
-            <p className="text-slate-400 text-lg leading-relaxed max-w-md">
-              Enterprise-grade AI that detects and blocks financial fraud in real time — protecting revenue and customers simultaneously.
-            </p>
-          </div>
+          {/* Tagline */}
+          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+            Intelligent Fraud<br />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-[#10b981] to-[#6366f1]">Detection Platform</span>
+          </h2>
+          <p className="text-slate-400 text-base leading-relaxed mb-10">
+            Real-time transaction monitoring powered by advanced ML models.
+            Protect your business with enterprise-grade fraud detection.
+          </p>
 
-          {/* Feature checklist */}
-          <div className="space-y-3 mb-auto">
-            {features.map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-emerald-500/15 border border-emerald-500/30 rounded-full flex items-center justify-center shrink-0">
-                  <CheckCircle className="w-3 h-3 text-emerald-400" />
-                </div>
-                <span className="text-slate-300 text-sm">{f}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom stats bar */}
-          <div className="mt-10 pt-8 border-t border-white/5 grid grid-cols-3 gap-4">
+          {/* Feature list */}
+          <div className="space-y-3">
             {[
-              { val: '99.94%', label: 'Accuracy' },
-              { val: '<42ms', label: 'Response' },
-              { val: '48K+', label: 'Transactions/day' },
-            ].map((s, i) => (
-              <div key={i}>
-                <p className="text-xl font-black text-emerald-400">{s.val}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+              { icon: Zap, label: 'Real-Time Analysis', desc: 'Sub-second fraud scoring on every transaction' },
+              { icon: Activity, label: '99.2% Accuracy', desc: 'Ensemble ML models with continuous learning' },
+              { icon: Lock, label: 'Bank-Grade Security', desc: 'End-to-end encryption & compliance ready' }
+            ].map((f, i) => (
+              <div key={i} className="flex items-center gap-4 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="w-10 h-10 rounded-xl bg-[#10b981]/10 flex items-center justify-center shrink-0">
+                  <f.icon className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{f.label}</p>
+                  <p className="text-xs text-slate-500">{f.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right panel — login form */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-10 py-12 relative">
-        {/* Mobile background */}
-        <div className="absolute inset-0 lg:hidden pointer-events-none">
-          <div className="absolute top-[-80px] right-[-80px] w-[320px] h-[320px] bg-[#10b981]/8 rounded-full blur-3xl" />
-          <div className="absolute bottom-[-60px] left-[-60px] w-[280px] h-[280px] bg-[#3b82f6]/6 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative w-full max-w-[420px]">
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-3 mb-10">
-            <div className="p-2.5 bg-[#10b981] rounded-xl shadow-lg shadow-emerald-500/30">
-              <Shield className="w-6 h-6 text-[#060c17]" strokeWidth={2.5} />
+      {/* Right — Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#10b981] to-[#059669] flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <span className="text-2xl font-black text-white">JED 24</span>
-              <p className="text-[10px] text-emerald-400/70 font-semibold tracking-widest uppercase block">Fraud Intelligence</p>
-            </div>
+            <h1 className="text-xl font-bold text-white">JED 24</h1>
           </div>
 
-          <h2 className="text-3xl font-black text-white mb-1.5">Welcome back</h2>
-          <p className="text-slate-400 text-sm mb-8">Sign in to your fraud intelligence dashboard</p>
-
-          {/* Error */}
-          {error && (
-            <div className="mb-6 flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <span className="text-red-300 text-sm font-medium">{error}</span>
+          {/* Form Container */}
+          <div className="bg-[#0a1628] border border-[#162032] rounded-2xl p-8 shadow-2xl shadow-black/30">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
+              <p className="text-sm text-slate-500">Sign in to your command center</p>
             </div>
-          )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Username</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="w-4 h-4 text-slate-500" />
-                </div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  required
-                  disabled={loading}
-                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-600 text-sm font-medium focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/15 transition-all disabled:opacity-50"
-                />
+            {error && (
+              <div className="mb-5 flex items-center gap-2.5 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="w-4 h-4 text-slate-500" />
-                </div>
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  required
-                  disabled={loading}
-                  className="w-full pl-11 pr-11 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-600 text-sm font-medium focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/15 transition-all disabled:opacity-50"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="relative w-full group py-3.5 bg-[#10b981] hover:bg-[#0ea371] text-[#060c17] rounded-xl font-bold text-sm transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-[#060c17]/30 border-t-[#060c17] rounded-full animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  Sign In
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-white/8" />
-            <span className="text-xs text-slate-600 font-medium">OR</span>
-            <div className="flex-1 h-px bg-white/8" />
-          </div>
-
-          {/* Demo mode */}
-          <div className="bg-[#10b981]/6 border border-[#10b981]/20 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-0.5">Demo Mode</p>
-                <p className="text-[11px] text-slate-500">No account required</p>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Username</label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="Enter username"
+                    className="w-full pl-11 pr-4 py-3 bg-[#04070d] border border-[#162032] rounded-xl text-white placeholder-slate-700 focus:border-[#10b981]/50 focus:ring-1 focus:ring-[#10b981]/20 outline-none transition-all text-sm"
+                    autoComplete="username"
+                  />
+                </div>
               </div>
-              <div className="flex gap-3 text-xs text-slate-400">
-                <span>demo / demo123</span>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full pl-11 pr-11 py-3 bg-[#04070d] border border-[#162032] rounded-xl text-white placeholder-slate-700 focus:border-[#10b981]/50 focus:ring-1 focus:ring-[#10b981]/20 outline-none transition-all text-sm"
+                    autoComplete="current-password"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-linear-to-r from-[#10b981] to-[#059669] text-white rounded-xl font-bold text-sm hover:from-[#34d399] hover:to-[#10b981] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 mt-2"
+              >
+                {loading ? (
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Authenticating...</>
+                ) : (
+                  <>Sign In <ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#162032]" /></div>
+              <div className="relative flex justify-center"><span className="px-3 bg-[#0a1628] text-xs text-slate-600">or continue with</span></div>
             </div>
+
+            {/* Demo Mode */}
             <button
-              type="button"
               onClick={onDemoMode}
-              className="w-full py-2.5 bg-[#10b981]/15 hover:bg-[#10b981]/25 border border-[#10b981]/30 text-emerald-400 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-white/[0.03] border border-[#162032] text-white rounded-xl font-semibold text-sm hover:bg-white/[0.06] hover:border-[#1e3050] transition-all flex items-center justify-center gap-2"
             >
-              <Zap className="w-4 h-4" />
-              Enter Demo Mode
+              <Zap className="w-4 h-4 text-amber-400" />
+              Launch Demo Mode
             </button>
+
+            <p className="text-center text-xs text-slate-600 mt-4">
+              Demo credentials: <span className="text-slate-400 font-medium">admin</span> / <span className="text-slate-400 font-medium">admin123</span>
+            </p>
           </div>
 
-          <p className="text-center text-[11px] text-slate-600 mt-6">
-            Protected by 256-bit AES encryption & GDPR compliant
+          <p className="text-center text-[10px] text-slate-700 mt-6">
+            &copy; {new Date().getFullYear()} JED 24 — Fraud Intelligence Platform
           </p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { metricsAPI, modelsAPI } from '../services/api'
+import { api } from '../services/api'
+import './Dashboard.css'
 import Header from './Header'
 import StatsCard from './StatsCard'
 import FraudChart from './FraudChart'
@@ -10,214 +11,177 @@ import FraudPatterns from './FraudPatterns'
 import Recommendations from './Recommendations'
 import AnalysisReport from './AnalysisReport'
 import {
-  LayoutDashboard, Network, Lightbulb, FileBarChart,
-  Activity, ShieldAlert, CheckCircle, Clock,
-  Shield, Menu, X, LogOut, ChevronRight,
-  TrendingUp, Wifi, WifiOff
+  LayoutDashboard, Network, Lightbulb, FileBarChart, Activity,
+  ShieldAlert, CheckCircle, Clock, Shield, Menu, X, LogOut,
+  ChevronRight, Wifi, WifiOff
 } from 'lucide-react'
 
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'patterns', label: 'Fraud Patterns', icon: Network },
+  { id: 'recommendations', label: 'Recommendations', icon: Lightbulb },
+  { id: 'analysis', label: 'Analysis Report', icon: FileBarChart }
+]
+
+const DEMO_METRICS = { total_transactions: 45678, fraud_detected: 1234, fraud_rate: 2.7, avg_response_time: 45, accuracy: 99.2, transactions_today: 3456, false_positive_rate: 0.8, detection_speed: '< 50ms' }
+const DEMO_HEALTH = { status: 'healthy', uptime: '99.97%', active_models: 3, last_retrained: '2025-01-28' }
+const DEMO_MODELS = [
+  { name: 'XGBoost Primary', status: 'active', accuracy: 99.2, last_prediction: '2s ago' },
+  { name: 'Neural Network', status: 'active', accuracy: 98.8, last_prediction: '5s ago' },
+  { name: 'Ensemble Model', status: 'active', accuracy: 99.5, last_prediction: '1s ago' }
+]
+
 export default function Dashboard({ user, onLogout }) {
-  const [autoRefresh, setAutoRefresh] = useState(true)
-  const [currentPage, setCurrentPage] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [autoRefresh, setAutoRefresh] = useState(true)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   useEffect(() => {
-    const handleOnline  = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
-    window.addEventListener('online',  handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-      window.removeEventListener('online',  handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
+    const on = () => setIsOnline(true)
+    const off = () => setIsOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
-  const isDemoMode = localStorage.getItem('token') === 'demo_offline_token'
-
-  const DEMO_METRICS = { total_transactions: 48291, fraud_detected: 1247, approval_rate: 97.4, avg_response_time: 42 }
-  const DEMO_HEALTH  = { status: 'healthy', total_predictions: 48291, fraud_rate: 0.026, uptime: '99.9%' }
-  const DEMO_MODELS  = { models: [{ model_name: 'XGBoost Ensemble', version: '2.1.0', is_trained: true, is_active: true, feature_count: 47, metadata: { accuracy: 0.9947, auc_roc: 0.998 } }] }
-
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const { data: metrics } = useQuery({
     queryKey: ['metrics'],
-    queryFn: () => isDemoMode ? Promise.resolve(DEMO_METRICS) : metricsAPI.getMetrics().then(r => r.data),
-    refetchInterval: autoRefresh && !isDemoMode ? 5000 : false,
-    retry: isDemoMode ? 0 : 2
+    queryFn: async () => { try { const r = await api.get('/api/metrics'); return r.data } catch { return DEMO_METRICS } },
+    refetchInterval: autoRefresh ? 30000 : false,
+    placeholderData: DEMO_METRICS
   })
-  const { data: health } = useQuery({
+
+  const { data: systemHealth } = useQuery({
     queryKey: ['health'],
-    queryFn: () => isDemoMode ? Promise.resolve(DEMO_HEALTH) : metricsAPI.getHealth().then(r => r.data),
-    refetchInterval: autoRefresh && !isDemoMode ? 10000 : false,
-    retry: isDemoMode ? 0 : 2
+    queryFn: async () => { try { const r = await api.get('/health'); return r.data } catch { return DEMO_HEALTH } },
+    refetchInterval: autoRefresh ? 30000 : false,
+    placeholderData: DEMO_HEALTH
   })
+
   const { data: models } = useQuery({
     queryKey: ['models'],
-    queryFn: () => isDemoMode ? Promise.resolve(DEMO_MODELS) : modelsAPI.listModels().then(r => r.data),
-    refetchInterval: autoRefresh && !isDemoMode ? 30000 : false,
-    retry: isDemoMode ? 0 : 2
+    queryFn: async () => { try { const r = await api.get('/api/models'); return r.data } catch { return DEMO_MODELS } },
+    refetchInterval: autoRefresh ? 60000 : false,
+    placeholderData: DEMO_MODELS
   })
 
-  const navItems = [
-    { id: 'dashboard',       label: 'Dashboard',  icon: LayoutDashboard, desc: 'Overview & metrics' },
-    { id: 'patterns',        label: 'Patterns',   icon: Network,         desc: 'Fraud pattern detection' },
-    { id: 'recommendations', label: 'Insights',   icon: Lightbulb,       desc: 'AI recommendations' },
-    { id: 'analysis',        label: 'Reports',    icon: FileBarChart,    desc: 'Analytics reports' },
-  ]
+  const navigate = (page) => { setCurrentPage(page); setSidebarOpen(false) }
+  const pageTitle = NAV_ITEMS.find(n => n.id === currentPage)?.label || 'Dashboard'
 
-  const pageTitles = {
-    dashboard:       'Dashboard',
-    patterns:        'Pattern Intelligence',
-    recommendations: 'AI Insights',
-    analysis:        'Analysis Reports',
-  }
-
-  const statCards = [
-    { title: 'Total Transactions', value: metrics?.total_transactions?.toLocaleString() ?? '—', trend: '+12.5%', icon: Activity,    color: 'blue'   },
-    { title: 'Fraud Detected',     value: metrics?.fraud_detected?.toLocaleString()     ?? '—', trend: '-8.3%',  icon: ShieldAlert, color: 'red'    },
-    { title: 'Approval Rate',      value: metrics?.approval_rate  ? `${metrics.approval_rate}%` : '—', trend: '+2.1%', icon: CheckCircle, color: 'green'  },
-    { title: 'Avg Response',       value: metrics?.avg_response_time ? `${metrics.avg_response_time}ms` : '—', trend: '-15ms', icon: Clock, color: 'purple' },
+  const statsCards = [
+    { title: 'Total Transactions', value: metrics?.total_transactions?.toLocaleString() || '—', icon: Activity, color: '#3b82f6', trend: '+12.5%', subtitle: 'vs last period' },
+    { title: 'Fraud Detected', value: metrics?.fraud_detected?.toLocaleString() || '—', icon: ShieldAlert, color: '#ef4444', trend: '-8.3%', subtitle: 'fewer incidents' },
+    { title: 'Detection Rate', value: `${metrics?.accuracy || 99.2}%`, icon: CheckCircle, color: '#10b981', trend: '+0.3%', subtitle: 'model accuracy' },
+    { title: 'Response Time', value: metrics?.detection_speed || '< 50ms', icon: Clock, color: '#f59e0b', trend: '-15ms', subtitle: 'faster than avg' }
   ]
 
   const renderContent = () => {
     switch (currentPage) {
-      case 'patterns':        return <FraudPatterns />
-      case 'recommendations': return <Recommendations />
-      case 'analysis':        return <AnalysisReport />
-      default: return (
-        <div className="space-y-5">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {metricsLoading
-              ? Array(4).fill(null).map((_, i) => <div key={i} className="skeleton h-28 rounded-xl" />)
-              : statCards.map((card, i) => <StatsCard key={i} {...card} />)
-            }
+      case 'patterns': return <div className="page-enter"><FraudPatterns /></div>
+      case 'recommendations': return <div className="page-enter"><Recommendations /></div>
+      case 'analysis': return <div className="page-enter"><AnalysisReport /></div>
+      default:
+        return (
+          <div className="space-y-5 page-enter">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {statsCards.map((s, i) => <StatsCard key={i} {...s} />)}
+            </div>
+
+            {/* Charts + Models Row */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <div className="xl:col-span-2">
+                <FraudChart metrics={metrics} systemHealth={systemHealth} />
+              </div>
+              <div>
+                <ModelStatus models={models} />
+              </div>
+            </div>
+
+            {/* Transaction Monitor */}
+            <TransactionMonitor systemHealth={systemHealth} />
           </div>
-          {/* Charts */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <FraudChart metrics={metrics} systemHealth={health} />
-            <ModelStatus models={models} systemHealth={health} />
-          </div>
-          {/* Transaction Monitor */}
-          <TransactionMonitor systemHealth={health} />
-        </div>
-      )
+        )
     }
   }
 
   return (
-    <div className="flex h-screen bg-[#070d1a] overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[#04070d]">
+      {/* Mobile Overlay */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* ─── Sidebar ─── */}
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#080e1c] border-r border-[#162032] flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:relative z-50 lg:z-auto
-        flex flex-col h-full w-60
-        bg-[#060c17] border-r border-white/5
-        transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        shrink-0
-      `}>
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/5">
-          <div className="p-2 bg-[#10b981] rounded-lg shadow-md shadow-emerald-500/30 shrink-0">
-            <Shield className="w-5 h-5 text-[#060c17]" strokeWidth={2.5} />
+        {/* Sidebar Header */}
+        <div className="h-16 px-5 flex items-center gap-3 border-b border-[#162032] shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-[#10b981] to-[#059669] flex items-center justify-center shadow-lg shadow-emerald-500/15">
+            <Shield className="w-[18px] h-[18px] text-white" />
           </div>
           <div className="min-w-0">
-            <span className="text-lg font-black text-white leading-none block">JED 24</span>
-            <span className="text-[10px] text-emerald-400/60 font-semibold tracking-widest uppercase">Fraud Intel</span>
+            <h1 className="text-base font-bold text-white tracking-tight leading-none">JED 24</h1>
+            <p className="text-[9px] text-emerald-400/70 font-semibold tracking-[0.2em] uppercase mt-0.5">Command Center</p>
           </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="ml-auto lg:hidden p-1 text-slate-500 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-white/5 text-slate-500">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* System health badge */}
-        <div className="mx-4 mt-4 mb-2 flex items-center gap-2 bg-[#10b981]/8 border border-[#10b981]/20 rounded-lg px-3 py-2">
-          {isOnline
-            ? <><Wifi className="w-3.5 h-3.5 text-emerald-400" /><span className="text-xs text-emerald-400 font-semibold">System Online</span></>
-            : <><WifiOff className="w-3.5 h-3.5 text-red-400" /><span className="text-xs text-red-400 font-semibold">Offline</span></>
-          }
-          {isDemoMode && <span className="ml-auto text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold uppercase">Demo</span>}
-        </div>
-
-        {/* Nav label */}
-        <p className="px-5 pt-3 pb-1 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Navigation</p>
-
-        {/* Nav items */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
-            const Icon = item.icon
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map(item => {
             const active = currentPage === item.id
             return (
               <button
                 key={item.id}
-                onClick={() => { setCurrentPage(item.id); setSidebarOpen(false) }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
+                onClick={() => navigate(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                   active
-                    ? 'bg-[#10b981]/15 text-emerald-400 border border-[#10b981]/25'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
+                    ? 'bg-[#10b981]/10 text-emerald-400 border border-[#10b981]/20'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03] border border-transparent'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                <item.icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-400'}`} />
                 <span className="truncate">{item.label}</span>
-                {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-emerald-500/60" />}
+                {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-emerald-400/50 shrink-0" />}
               </button>
             )
           })}
         </nav>
 
-        {/* Bottom section */}
-        <div className="border-t border-white/5 p-3 space-y-1.5">
-          {/* User */}
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/4">
-            <div className="w-7 h-7 bg-linear-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shrink-0">
-              <span className="text-xs font-black text-white">{(user?.username || 'A')[0].toUpperCase()}</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{user?.username || 'Admin'}</p>
-              <p className="text-[10px] text-slate-500 truncate capitalize">{user?.roles?.[0] || 'user'}</p>
-            </div>
+        {/* Sidebar Footer */}
+        <div className="p-3 border-t border-[#162032] space-y-2">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.02]">
+            {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> : <WifiOff className="w-3.5 h-3.5 text-red-400 shrink-0" />}
+            <span className="text-xs text-slate-500">{isOnline ? 'Connected' : 'Offline'}</span>
+            <div className={`w-1.5 h-1.5 rounded-full ml-auto shrink-0 ${isOnline ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} />
           </div>
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/8 transition-all"
-          >
+          <button onClick={onLogout} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all text-sm">
             <LogOut className="w-4 h-4 shrink-0" />
-            Sign Out
+            <span className="font-medium">Sign Out</span>
+            <span className="ml-auto text-[10px] text-slate-700 truncate max-w-[80px]">{user?.username}</span>
           </button>
         </div>
       </aside>
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
+      {/* ─── Main Content ─── */}
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header
-          pageTitle={pageTitles[currentPage]}
+          pageTitle={pageTitle}
           user={user}
-          onLogout={onLogout}
-          systemHealth={health}
+          systemHealth={systemHealth}
           autoRefresh={autoRefresh}
           setAutoRefresh={setAutoRefresh}
           isOnline={isOnline}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
-
-        {/* Scrollable content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {renderContent()}
-        </main>
-      </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 lg:p-6 max-w-[1600px] mx-auto w-full">
+            {renderContent()}
+          </div>
+        </div>
+      </main>
     </div>
   )
 }
