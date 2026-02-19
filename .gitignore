@@ -36,6 +36,11 @@ ENV/
 env/
 .venv
 
+# Database
+*.db
+*.db-wal
+*.db-shm
+
 # IDEs
 .vscode/
 .idea/

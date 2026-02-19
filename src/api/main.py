@@ -21,6 +21,7 @@ from ..security import AuthenticationManager, AuthorizationManager, User
 from ..monitoring import MetricsCollector, AlertManager, PerformanceMonitor
 from ..compliance import AuditLogger, EventType
 from .analytics import router as analytics_router
+from . import database as db
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ audit_logger = AuditLogger()
 metrics_collector = MetricsCollector()
 performance_monitor = PerformanceMonitor(metrics_collector)
 model_registry = ModelRegistry()
+_startup_time = datetime.utcnow()
 
 
 # Pydantic models for API
@@ -200,14 +202,19 @@ async def root():
 
 @app.get("/health", tags=["General"])
 async def health_check():
-    """Health check — returns shape expected by frontend Dashboard"""
-    system_health = performance_monitor.get_system_health()
-    
+    """Health check — backed by persistent DB stats"""
+    stats = db.get_transaction_stats(days=9999)
+    total = stats["total_transactions"]
+    fraud = stats["fraud_detected"]
+    fraud_rate = round(fraud / total * 100, 2) if total > 0 else 0
+    uptime_s = (datetime.utcnow() - _startup_time).total_seconds()
+    hours = int(uptime_s // 3600)
+    minutes = int((uptime_s % 3600) // 60)
     return {
-        "status": "healthy" if system_health.get('status') == 'healthy' else "degraded",
-        "total_predictions": system_health.get('total_predictions', 0),
-        "fraud_rate": system_health.get('fraud_rate', 0),
-        "uptime": "99.9%",
+        "status": "healthy",
+        "total_predictions": total,
+        "fraud_rate": fraud_rate,
+        "uptime": f"{hours}h {minutes}m",
     }
 
 
@@ -239,12 +246,9 @@ async def login(credentials: LoginRequest):
     }
     access_token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     
-    # Log successful login
-    audit_logger.log_event(
-        event_type=EventType.USER_LOGIN,
-        user_id=user.user_id,
-        status="success",
-    )
+    # Persist login event
+    db.update_last_login(user.user_id)
+    db.save_audit_event("user_login", user_id=user.user_id, status="success")
     
     return LoginResponse(
         access_token=access_token,
@@ -320,21 +324,33 @@ async def detect_fraud(
     # Detect fraud
     result = await detector.detect_fraud(transaction)
     
-    # Log to audit trail
-    audit_logger.log_event(
-        event_type=EventType.FRAUD_DETECTION,
-        user_id=user.user_id,
+    # Persist transaction + result to DB (durable, atomic)
+    db.save_transaction({
+        "transaction_id": transaction.transaction_id,
+        "user_id": transaction.user_id,
+        "merchant_id": transaction.merchant_id,
+        "amount": transaction.amount,
+        "currency": transaction.currency,
+        "transaction_type": transaction.transaction_type,
+        "channel": transaction.channel,
+        "country": transaction.country,
+        "city": transaction.city,
+        "fraud_score": result.fraud_score,
+        "is_fraud": result.is_fraud,
+        "risk_level": result.risk_level,
+        "decision": result.decision,
+        "model_version": result.model_version,
+        "processing_time_ms": result.processing_time_ms,
+        "risk_factors": result.top_risk_factors,
+    })
+    db.save_audit_event(
+        "fraud_detection", user_id=user.user_id,
         resource=f"transaction_{transaction.transaction_id}",
-        action="detect",
-        status="success",
-        metadata={
-            'fraud_score': result.fraud_score,
-            'decision': result.decision,
-            'risk_level': result.risk_level
-        }
+        action="detect", status="success",
+        metadata={"fraud_score": result.fraud_score, "decision": result.decision}
     )
     
-    # Record performance metrics
+    # Also keep in-memory metrics for Prometheus
     performance_monitor.record_prediction(
         fraud_score=result.fraud_score,
         is_fraud=result.is_fraud,
@@ -357,7 +373,7 @@ async def detect_fraud(
 @app.get("/metrics", tags=["Monitoring"])
 async def get_metrics(user: User = Depends(get_current_user)):
     """
-    Get dashboard metrics — flat shape for the frontend
+    Get dashboard metrics — reads from persistent DB
     
     Requires 'reports:read' permission
     """
@@ -367,18 +383,7 @@ async def get_metrics(user: User = Depends(get_current_user)):
             detail="Insufficient permissions"
         )
     
-    health = performance_monitor.get_system_health()
-    total = health.get('total_predictions', 0)
-    fraud = health.get('fraud_detected', 0)
-    fraud_rate = health.get('fraud_rate', 0)
-    avg_rt = health.get('processing_time_stats', {}).get('mean', 0)
-    
-    return {
-        "total_transactions": total,
-        "fraud_detected": fraud,
-        "approval_rate": round((1 - fraud_rate) * 100, 2) if total > 0 else 97.4,
-        "avg_response_time": round(avg_rt, 1) if avg_rt else 42,
-    }
+    return db.get_transaction_stats(days=30)
 
 
 @app.get("/metrics/prometheus", tags=["Monitoring"])
@@ -412,26 +417,15 @@ async def get_audit_events(
             detail="Admin role required"
         )
     
-    # Convert event_type string to EventType enum
-    event_type_enum = None
-    if event_type:
-        try:
-            event_type_enum = EventType(event_type)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid event type: {event_type}"
-            )
-    
-    events = audit_logger.query_events(
+    events = db.get_audit_events(
+        limit=limit,
         user_id=user_id,
-        event_type=event_type_enum,
-        limit=limit
+        event_type=event_type if event_type else None
     )
     
     return {
         "count": len(events),
-        "events": [e.to_dict() for e in events]
+        "events": events
     }
 
 
@@ -499,6 +493,11 @@ async def startup_event():
     """Initialize system on startup"""
     logger.info("Starting Fraud Detection System API")
     
+    # Initialize persistent database (ACID-compliant SQLite)
+    db.init_db()
+    global _startup_time
+    _startup_time = datetime.utcnow()
+    
     # Load trained models
     try:
         from pathlib import Path
@@ -523,13 +522,20 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Error loading models: {e}")
     
-    # Register default users
+    # Register default users (persisted to DB + in-memory auth)
+    from passlib.context import CryptContext
+    _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
     for user_cfg in [
         {"user_id": "admin_user", "username": "admin", "email": "admin@example.com", "password": "admin123", "roles": ["admin", "analyst"]},
         {"user_id": "demo_user", "username": "demo", "email": "demo@example.com", "password": "demo123", "roles": ["analyst"]},
     ]:
         try:
             auth_manager.register_user(**user_cfg)
+            # Also persist to DB for durability
+            db.upsert_user(
+                user_cfg["user_id"], user_cfg["username"], user_cfg["email"],
+                _pwd.hash(user_cfg["password"]), user_cfg["roles"]
+            )
             logger.info(f"User created: {user_cfg['username']}")
         except ValueError:
             logger.info(f"User already exists: {user_cfg['username']}")
