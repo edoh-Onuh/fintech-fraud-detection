@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
-import { Download, FileText, TrendingUp, AlertCircle, DollarSign, MapPin, Clock, Users } from 'lucide-react'
+import { Download, FileText, TrendingUp, AlertCircle, DollarSign, MapPin, Clock, Users, Loader2 } from 'lucide-react'
 import { analyticsAPI } from '../services/api'
 
 export default function AnalysisReport() {
   const [reportData, setReportData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selectedPeriod, setSelectedPeriod] = useState('7d')
 
   useEffect(() => { fetchReportData() }, [selectedPeriod])
@@ -14,64 +15,38 @@ export default function AnalysisReport() {
 
   const fetchReportData = async () => {
     setLoading(true)
-
-    // Fallback mock data used when API is unavailable
-    const mockData = {
-      summary: { totalTransactions: 45678, fraudDetected: 1234, fraudRate: 2.7, totalAmount: 12456789, blockedAmount: 456789, savedAmount: 456789, falsePositives: 45, falseNegatives: 12 },
-      fraudByType: [
-        { name: 'Account Takeover', value: 412, amount: 156789 },
-        { name: 'Card Testing', value: 298, amount: 45678 },
-        { name: 'Velocity Attack', value: 234, amount: 89012 },
-        { name: 'Geographic Anomaly', value: 156, amount: 78901 },
-        { name: 'Unusual Pattern', value: 134, amount: 86409 }
-      ],
-      fraudByTime: [
-        { hour: '00:00', fraud: 23, legitimate: 1245 }, { hour: '03:00', fraud: 45, legitimate: 890 },
-        { hour: '06:00', fraud: 12, legitimate: 1567 }, { hour: '09:00', fraud: 34, legitimate: 3456 },
-        { hour: '12:00', fraud: 56, legitimate: 4567 }, { hour: '15:00', fraud: 78, legitimate: 5234 },
-        { hour: '18:00', fraud: 67, legitimate: 4123 }, { hour: '21:00', fraud: 43, legitimate: 2890 }
-      ],
-      fraudByRegion: [
-        { region: 'London', fraud: 456, legitimate: 12345 }, { region: 'Manchester', fraud: 234, legitimate: 6789 },
-        { region: 'Birmingham', fraud: 189, legitimate: 5432 }, { region: 'Glasgow', fraud: 145, legitimate: 4321 },
-        { region: 'International', fraud: 210, legitimate: 3456 }
-      ],
-      modelPerformance: [
-        { metric: 'Precision', XGBoost: 98.5, Ensemble: 99.2, Industry: 95.0 },
-        { metric: 'Recall', XGBoost: 96.8, Ensemble: 98.1, Industry: 92.0 },
-        { metric: 'F1-Score', XGBoost: 97.6, Ensemble: 98.6, Industry: 93.5 },
-        { metric: 'Accuracy', XGBoost: 99.9, Ensemble: 100.0, Industry: 97.0 },
-        { metric: 'Speed', XGBoost: 95.0, Ensemble: 88.0, Industry: 85.0 }
-      ],
-      riskDistribution: [
-        { level: 'Critical', count: 234, percentage: 19 }, { level: 'High', count: 412, percentage: 33 },
-        { level: 'Medium', count: 345, percentage: 28 }, { level: 'Low', count: 156, percentage: 13 },
-        { level: 'Minimal', count: 87, percentage: 7 }
-      ],
-      trends: [
-        { date: 'Jan 28', fraud: 45, saved: 42, revenue: 1234 }, { date: 'Jan 29', fraud: 52, saved: 48, revenue: 1456 },
-        { date: 'Jan 30', fraud: 61, saved: 55, revenue: 1567 }, { date: 'Jan 31', fraud: 48, saved: 43, revenue: 1389 },
-        { date: 'Feb 1', fraud: 55, saved: 51, revenue: 1678 }, { date: 'Feb 2', fraud: 67, saved: 62, revenue: 1890 },
-        { date: 'Feb 3', fraud: 58, saved: 54, revenue: 1734 }
-      ]
-    }
+    setError(null)
 
     try {
       // Fetch all analytics endpoints in parallel
-      const [trendsRes, geoRes, impactRes, modelsRes] = await Promise.allSettled([
+      const [trendsRes, geoRes, impactRes, modelsRes, patternsRes] = await Promise.allSettled([
         analyticsAPI.getRiskTrends(periodDays),
         analyticsAPI.getGeographicInsights(),
         analyticsAPI.getBusinessImpact(periodDays),
-        analyticsAPI.getModelComparison()
+        analyticsAPI.getModelComparison(),
+        analyticsAPI.getPatterns(periodDays)
       ])
 
       const trends = trendsRes.status === 'fulfilled' ? trendsRes.value.data : null
       const geo = geoRes.status === 'fulfilled' ? geoRes.value.data : null
       const impact = impactRes.status === 'fulfilled' ? impactRes.value.data : null
       const models = modelsRes.status === 'fulfilled' ? modelsRes.value.data : null
+      const patternsData = patternsRes.status === 'fulfilled' ? patternsRes.value.data : null
 
-      // Build report from live data, falling back to mock per section
-      const built = { ...mockData }
+      // Check if we got at least some data
+      if (!trends && !geo && !impact && !models) {
+        throw new Error('All analytics endpoints failed')
+      }
+
+      const built = {
+        summary: { totalTransactions: 0, fraudDetected: 0, fraudRate: 0, totalAmount: 0, blockedAmount: 0, savedAmount: 0, falsePositives: 0, falseNegatives: 0 },
+        fraudByType: [],
+        fraudByTime: [],
+        fraudByRegion: [],
+        modelPerformance: [],
+        riskDistribution: [],
+        trends: []
+      }
 
       // Trends → chart data
       if (Array.isArray(trends) && trends.length) {
@@ -95,15 +70,46 @@ export default function AnalysisReport() {
       // Business impact → summary
       if (impact) {
         built.summary = {
-          totalTransactions: impact.fraud_prevented ? Math.round(impact.fraud_prevented / 0.027) : mockData.summary.totalTransactions,
-          fraudDetected: impact.fraud_prevented || mockData.summary.fraudDetected,
-          fraudRate: impact.fraud_prevented && impact.amount_saved ? 2.7 : mockData.summary.fraudRate,
-          totalAmount: impact.amount_saved ? Math.round(impact.amount_saved / 0.037) : mockData.summary.totalAmount,
-          blockedAmount: impact.amount_saved || mockData.summary.blockedAmount,
-          savedAmount: impact.net_savings || impact.amount_saved || mockData.summary.savedAmount,
-          falsePositives: impact.false_positive_cost ? Math.round(impact.false_positive_cost / 100) : mockData.summary.falsePositives,
-          falseNegatives: mockData.summary.falseNegatives
+          totalTransactions: impact.fraud_prevented ? Math.round(impact.fraud_prevented / 0.027) : 0,
+          fraudDetected: impact.fraud_prevented || 0,
+          fraudRate: impact.fraud_prevented && built.summary.totalTransactions ? ((impact.fraud_prevented / built.summary.totalTransactions) * 100) : 0,
+          totalAmount: impact.amount_saved ? Math.round(impact.amount_saved / 0.037) : 0,
+          blockedAmount: impact.amount_saved || 0,
+          savedAmount: impact.net_savings || impact.amount_saved || 0,
+          falsePositives: impact.false_positive_cost ? Math.round(impact.false_positive_cost / 100) : 0,
+          falseNegatives: 0
         }
+      }
+
+      // Patterns → fraudByType
+      if (Array.isArray(patternsData) && patternsData.length) {
+        built.fraudByType = patternsData.map(p => ({
+          name: p.name,
+          value: p.occurrences || 0,
+          amount: p.impact_amount || 0
+        }))
+      }
+
+      // Build risk distribution from trends
+      if (Array.isArray(trends) && trends.length) {
+        const totalFraud = trends.reduce((s, t) => s + (t.fraud_count || 0), 0)
+        const avgScore = trends.reduce((s, t) => s + (t.avg_risk_score || 0), 0) / trends.length
+        built.riskDistribution = [
+          { level: 'Critical', count: Math.round(totalFraud * 0.19), percentage: 19 },
+          { level: 'High', count: Math.round(totalFraud * 0.33), percentage: 33 },
+          { level: 'Medium', count: Math.round(totalFraud * 0.28), percentage: 28 },
+          { level: 'Low', count: Math.round(totalFraud * 0.13), percentage: 13 },
+          { level: 'Minimal', count: Math.round(totalFraud * 0.07), percentage: 7 }
+        ]
+      }
+
+      // Build fraudByTime from trends
+      if (Array.isArray(trends) && trends.length) {
+        built.fraudByTime = trends.map(t => ({
+          hour: new Date(t.date).toLocaleDateString('en-GB', { weekday: 'short' }),
+          fraud: t.fraud_count || 0,
+          legitimate: Math.round((t.total_amount || 0) / 100)
+        }))
       }
 
       // Model comparison → modelPerformance radar
@@ -111,18 +117,19 @@ export default function AnalysisReport() {
         const m1 = models.models[0] || {}
         const m2 = models.models[1] || models.models[0] || {}
         built.modelPerformance = [
-          { metric: 'Precision', XGBoost: m1.precision || 98.5, Ensemble: m2.precision || 99.2, Industry: 95.0 },
-          { metric: 'Recall', XGBoost: m1.recall || 96.8, Ensemble: m2.recall || 98.1, Industry: 92.0 },
-          { metric: 'F1-Score', XGBoost: m1.f1_score || 97.6, Ensemble: m2.f1_score || 98.6, Industry: 93.5 },
-          { metric: 'Accuracy', XGBoost: m1.accuracy || 99.9, Ensemble: m2.accuracy || 100.0, Industry: 97.0 },
-          { metric: 'Speed', XGBoost: m1.speed || 95.0, Ensemble: m2.speed || 88.0, Industry: 85.0 }
+          { metric: 'Precision', XGBoost: m1.precision || 0, Ensemble: m2.precision || 0, Industry: 95.0 },
+          { metric: 'Recall', XGBoost: m1.recall || 0, Ensemble: m2.recall || 0, Industry: 92.0 },
+          { metric: 'F1-Score', XGBoost: m1.f1_score || 0, Ensemble: m2.f1_score || 0, Industry: 93.5 },
+          { metric: 'Accuracy', XGBoost: m1.accuracy || 0, Ensemble: m2.accuracy || 0, Industry: 97.0 },
+          { metric: 'Speed', XGBoost: m1.speed || 0, Ensemble: m2.speed || 0, Industry: 85.0 }
         ]
       }
 
       setReportData(built)
-    } catch (error) {
-      console.warn('Report API error, using fallback data:', error.message)
-      setReportData(mockData)
+    } catch (err) {
+      console.error('Report API error:', err.message)
+      setError(err.message)
+      setReportData(null)
     } finally {
       setLoading(false)
     }
@@ -156,8 +163,23 @@ export default function AnalysisReport() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
           <p className="mt-3 text-sm text-slate-500">Loading analytics...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !reportData) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
+          <p className="mt-3 text-sm text-slate-500">Failed to load report data</p>
+          <p className="text-xs text-slate-600 mt-1">{error || 'No data available'}</p>
+          <button onClick={fetchReportData} className="mt-4 px-4 py-2 bg-[#0a1628] border border-[#162032] rounded-xl text-sm text-white hover:bg-[#162032] transition-all">
+            Retry
+          </button>
         </div>
       </div>
     )
@@ -166,8 +188,8 @@ export default function AnalysisReport() {
   const summaryCards = [
     { label: 'Total Transactions', value: reportData.summary.totalTransactions.toLocaleString(), icon: Users, color: 'text-blue-400', borderColor: 'border-blue-500/15' },
     { label: 'Fraud Detected', value: reportData.summary.fraudDetected.toLocaleString(), icon: AlertCircle, color: 'text-red-400', borderColor: 'border-red-500/15' },
-    { label: 'Amount Blocked', value: `£${(reportData.summary.blockedAmount / 1000).toFixed(0)}K`, icon: AlertCircle, color: 'text-orange-400', borderColor: 'border-orange-500/15' },
-    { label: 'Money Saved', value: `£${(reportData.summary.savedAmount / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-emerald-400', borderColor: 'border-emerald-500/15' }
+    { label: 'Amount Blocked', value: reportData.summary.blockedAmount ? `£${(reportData.summary.blockedAmount / 1000).toFixed(0)}K` : '—', icon: AlertCircle, color: 'text-orange-400', borderColor: 'border-orange-500/15' },
+    { label: 'Money Saved', value: reportData.summary.savedAmount ? `£${(reportData.summary.savedAmount / 1000).toFixed(0)}K` : '—', icon: DollarSign, color: 'text-emerald-400', borderColor: 'border-emerald-500/15' }
   ]
 
   return (
@@ -260,16 +282,18 @@ export default function AnalysisReport() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 border-t border-[#162032]">
-            <div className="p-4 border-r border-[#162032] text-center">
-              <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider mb-0.5">Critical Risk</p>
-              <p className="text-xl font-bold text-red-400">{reportData.riskDistribution[0].count}</p>
+          {reportData.riskDistribution.length >= 5 && (
+            <div className="grid grid-cols-2 border-t border-[#162032]">
+              <div className="p-4 border-r border-[#162032] text-center">
+                <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider mb-0.5">Critical Risk</p>
+                <p className="text-xl font-bold text-red-400">{reportData.riskDistribution[0].count}</p>
+              </div>
+              <div className="p-4 text-center">
+                <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider mb-0.5">Low Risk</p>
+                <p className="text-xl font-bold text-emerald-400">{reportData.riskDistribution[4].count}</p>
+              </div>
             </div>
-            <div className="p-4 text-center">
-              <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider mb-0.5">Low Risk</p>
-              <p className="text-xl font-bold text-emerald-400">{reportData.riskDistribution[4].count}</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -414,7 +438,7 @@ export default function AnalysisReport() {
           {[
             `Data from ${selectedPeriod === '7d' ? 'the last 7 days' : selectedPeriod === '30d' ? 'the last 30 days' : 'the last 24 hours'}`,
             'All monetary values in GBP (£)',
-            `False positive rate: ${((reportData.summary.falsePositives / reportData.summary.totalTransactions) * 100).toFixed(2)}%`,
+            reportData.summary.totalTransactions ? `False positive rate: ${((reportData.summary.falsePositives / reportData.summary.totalTransactions) * 100).toFixed(2)}%` : 'False positive rate: calculating...',
             'Models are continuously retrained with new data'
           ].map((note, i) => (
             <div key={i} className="flex items-start gap-2.5 bg-[#04070d]/50 border border-[#162032] rounded-xl px-4 py-3 text-xs text-slate-400">

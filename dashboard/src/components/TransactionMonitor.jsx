@@ -46,27 +46,13 @@ export default function TransactionMonitor({ systemHealth }) {
         models: data.model_version ? [`Model: ${data.model_version} — Score: ${(data.fraud_score * 100).toFixed(1)}%`] : []
       })
     } catch (err) {
-      // Fallback to local scoring if API unavailable
-      console.warn('Fraud API unavailable, using local scoring:', err.message)
-      const score = amount > 5000 ? 0.85 : amount > 1000 ? 0.45 : 0.12
-      const decision = score > 0.7 ? 'BLOCKED' : score > 0.4 ? 'REVIEW' : 'APPROVED'
-      setResult({
-        decision,
-        score: (score * 100).toFixed(1),
-        risk: score > 0.7 ? 'Critical' : score > 0.4 ? 'Medium' : 'Low',
-        timestamp: new Date().toLocaleString('en-GB'),
-        processingTime: null,
-        modelVersion: null,
-        factors: [
-          amount > 5000 && 'High transaction amount',
-          formData.category === 'international' && 'International transaction',
-          'Velocity check passed',
-          'Device fingerprint verified',
-          amount > 2000 && 'Above average transaction value'
-        ].filter(Boolean),
-        models: ['Local scoring — API offline']
-      })
-      setError('API unavailable — showing local estimate')
+      console.error('Fraud detection API error:', err.message)
+      setResult(null)
+      setError(err.response?.status === 403
+        ? 'Permission denied — your account lacks fraud detection access'
+        : err.response?.status === 401
+        ? 'Session expired — please log in again'
+        : `Analysis failed: ${err.response?.data?.detail || err.message}`)
     } finally {
       setAnalyzing(false)
     }
@@ -214,11 +200,23 @@ export default function TransactionMonitor({ systemHealth }) {
           })() : (
             <div className="h-full flex items-center justify-center min-h-[260px]">
               <div className="text-center">
-                <div className="w-16 h-16 rounded-2xl bg-[#04070d] border border-[#162032] flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-8 h-8 text-slate-700" />
-                </div>
-                <p className="text-sm text-slate-500 font-medium">No analysis yet</p>
-                <p className="text-[11px] text-slate-700 mt-1">Submit a transaction to begin scoring</p>
+                {error ? (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                      <AlertTriangle className="w-8 h-8 text-red-400" />
+                    </div>
+                    <p className="text-sm text-red-400 font-medium">Analysis Failed</p>
+                    <p className="text-[11px] text-slate-500 mt-1 max-w-[200px]">{error}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-[#04070d] border border-[#162032] flex items-center justify-center mx-auto mb-4">
+                      <Shield className="w-8 h-8 text-slate-700" />
+                    </div>
+                    <p className="text-sm text-slate-500 font-medium">No analysis yet</p>
+                    <p className="text-[11px] text-slate-700 mt-1">Submit a transaction to begin scoring</p>
+                  </>
+                )}
               </div>
             </div>
           )}

@@ -1,45 +1,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Lightbulb, AlertTriangle, TrendingUp, Shield, Bell, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
+import { Lightbulb, AlertTriangle, TrendingUp, Shield, Bell, ChevronDown, ChevronUp, CheckCircle, Loader2 } from 'lucide-react'
 import { analyticsAPI } from '../services/api'
 
 const iconMap = { Security: Shield, Rules: TrendingUp, 'ML Model': AlertTriangle, Operations: Bell }
 const colorMap = { critical: 'border-l-red-500', high: 'border-l-orange-500', medium: 'border-l-blue-500', low: 'border-l-slate-500' }
-
-const DEMO_RECOMMENDATIONS = [
-  {
-    id: 1, title: 'Enable Adaptive Authentication', priority: 'critical', category: 'Security',
-    description: 'Implement step-up authentication for high-risk transactions based on real-time risk scoring.',
-    impact: 'Could prevent an estimated £89,000 in monthly fraud losses',
-    recommendation: 'Deploy multi-factor auth triggers for transactions scoring above 0.6 risk threshold.',
-    confidence: 96, action: 'Deploy Now',
-    icon: Shield, color: 'border-l-red-500'
-  },
-  {
-    id: 2, title: 'Update Velocity Rules', priority: 'high', category: 'Rules',
-    description: 'Current velocity thresholds are outdated. New attack patterns bypass existing limits.',
-    impact: 'Address 34% of undetected card testing attacks',
-    recommendation: 'Reduce per-card transaction limit from 10 to 5 per hour during off-peak hours.',
-    confidence: 91, action: 'Update Rules',
-    icon: TrendingUp, color: 'border-l-orange-500'
-  },
-  {
-    id: 3, title: 'Geographic Risk Scoring Enhancement', priority: 'high', category: 'ML Model',
-    description: 'Add travel pattern analysis to improve geographic anomaly detection accuracy.',
-    impact: 'Improve geographic fraud detection by 23%',
-    recommendation: 'Integrate flight booking data and historical travel patterns into the risk model.',
-    confidence: 88, action: 'Train Model',
-    icon: AlertTriangle, color: 'border-l-amber-500'
-  },
-  {
-    id: 4, title: 'Real-Time Alert Optimization', priority: 'medium', category: 'Operations',
-    description: 'Reduce false positive alerts to improve analyst efficiency and response times.',
-    impact: 'Save 120 analyst hours per month',
-    recommendation: 'Implement alert clustering and priority-based routing with 15-min SLA for critical alerts.',
-    confidence: 84, action: 'Configure',
-    icon: Bell, color: 'border-l-blue-500'
-  }
-]
 
 const priorityBadge = {
   critical: 'bg-red-500/10 text-red-400 border-red-500/20',
@@ -59,7 +24,7 @@ export default function Recommendations() {
   const [expanded, setExpanded] = useState(null)
 
   // Fetch live recommendations from API
-  const { data: liveRecs } = useQuery({
+  const { data: recommendations = [], isLoading, isError } = useQuery({
     queryKey: ['recommendations'],
     queryFn: async () => {
       const r = await analyticsAPI.getRecommendations()
@@ -70,7 +35,7 @@ export default function Recommendations() {
         priority: (rec.priority || 'medium').toLowerCase(),
         category: rec.category || 'Security',
         description: rec.description,
-        impact: rec.description, // Use description as impact if no separate field
+        impact: rec.description,
         recommendation: rec.action || rec.description,
         confidence: rec.confidence || 80,
         action: rec.action || 'Review',
@@ -80,16 +45,36 @@ export default function Recommendations() {
     },
     staleTime: 60000,
     refetchInterval: 60000,
-    placeholderData: DEMO_RECOMMENDATIONS
   })
 
-  const recommendations = liveRecs?.length ? liveRecs : DEMO_RECOMMENDATIONS
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto" />
+          <p className="mt-3 text-sm text-slate-500">Loading recommendations...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-400 mx-auto" />
+          <p className="mt-3 text-sm text-slate-500">Failed to load recommendations</p>
+          <p className="text-xs text-slate-600 mt-1">Check your connection and try again</p>
+        </div>
+      </div>
+    )
+  }
 
   const stats = [
     { label: 'Active', value: recommendations.length, color: 'text-blue-400' },
     { label: 'Critical', value: recommendations.filter(r => r.priority === 'critical').length, color: 'text-red-400' },
-    { label: 'Avg Confidence', value: (recommendations.reduce((s, r) => s + r.confidence, 0) / recommendations.length).toFixed(0) + '%', color: 'text-emerald-400' },
-    { label: 'Est. Savings', value: '£89K+', color: 'text-amber-400' }
+    { label: 'Avg Confidence', value: recommendations.length ? (recommendations.reduce((s, r) => s + r.confidence, 0) / recommendations.length).toFixed(0) + '%' : '—', color: 'text-emerald-400' },
+    { label: 'Est. Savings', value: '—', color: 'text-amber-400' }
   ]
 
   return (

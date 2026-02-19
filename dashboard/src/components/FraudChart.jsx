@@ -1,46 +1,31 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, BarChart3, Activity } from 'lucide-react'
+import { TrendingUp, BarChart3, Activity, Loader2 } from 'lucide-react'
 import { analyticsAPI } from '../services/api'
-
-const DEMO_DATA = [
-  { time: '00:00', legitimate: 1245, fraudulent: 23, score: 0.92 },
-  { time: '03:00', legitimate: 890, fraudulent: 45, score: 0.95 },
-  { time: '06:00', legitimate: 1567, fraudulent: 12, score: 0.88 },
-  { time: '09:00', legitimate: 3456, fraudulent: 34, score: 0.91 },
-  { time: '12:00', legitimate: 4567, fraudulent: 56, score: 0.94 },
-  { time: '15:00', legitimate: 5234, fraudulent: 78, score: 0.97 },
-  { time: '18:00', legitimate: 4123, fraudulent: 67, score: 0.93 },
-  { time: '21:00', legitimate: 2890, fraudulent: 43, score: 0.90 }
-]
 
 export default function FraudChart({ metrics, systemHealth }) {
   const [chartType, setChartType] = useState('area')
 
   // Fetch live risk trends from the API
-  const { data: trendData } = useQuery({
+  const { data: chartData, isLoading, isError } = useQuery({
     queryKey: ['risk-trends'],
     queryFn: async () => {
-      try {
-        const r = await analyticsAPI.getRiskTrends(14)
-        const raw = r.data
-        if (Array.isArray(raw) && raw.length > 0) {
-          return raw.map(d => ({
-            time: d.date?.slice(5) || d.date,  // MM-DD
-            legitimate: Math.round((d.total_amount || 0) / 100),
-            fraudulent: d.fraud_count || 0,
-            score: (d.avg_risk_score || 0) / 100
-          }))
-        }
-        return null
-      } catch { return null }
+      const r = await analyticsAPI.getRiskTrends(14)
+      const raw = r.data
+      if (Array.isArray(raw) && raw.length > 0) {
+        return raw.map(d => ({
+          time: d.date?.slice(5) || d.date,
+          legitimate: Math.round((d.total_amount || 0) / 100),
+          fraudulent: d.fraud_count || 0,
+          score: (d.avg_risk_score || 0) / 100
+        }))
+      }
+      return []
     },
     staleTime: 60000,
     refetchInterval: 60000,
   })
-
-  const chartData = trendData || DEMO_DATA
 
   const types = [
     { id: 'area', icon: Activity, label: 'Area' },
@@ -108,8 +93,9 @@ export default function FraudChart({ metrics, systemHealth }) {
     }
   }
 
-  const peakHour = chartData.reduce((max, d) => d.fraudulent > max.fraudulent ? d : max, chartData[0])
-  const avgFraudRate = (chartData.reduce((s, d) => s + d.fraudulent, 0) / chartData.reduce((s, d) => s + d.legitimate + d.fraudulent, 0) * 100).toFixed(2)
+  const safeData = chartData?.length ? chartData : []
+  const peakHour = safeData.length ? safeData.reduce((max, d) => d.fraudulent > max.fraudulent ? d : max, safeData[0]) : { time: '—', fraudulent: 0 }
+  const avgFraudRate = safeData.length ? (safeData.reduce((s, d) => s + d.fraudulent, 0) / safeData.reduce((s, d) => s + d.legitimate + d.fraudulent, 0) * 100).toFixed(2) : '0.00'
 
   return (
     <div className="bg-[#0a1628] border border-[#162032] rounded-2xl overflow-hidden hover:border-[#1e3050] transition-all duration-200 h-full flex flex-col">
@@ -142,9 +128,25 @@ export default function FraudChart({ metrics, systemHealth }) {
 
       {/* Chart Body */}
       <div className="p-4 pb-2 flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height={260}>
-          {renderChart()}
-        </ResponsiveContainer>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[260px]">
+            <div className="text-center">
+              <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
+              <p className="mt-2 text-xs text-slate-500">Loading trends...</p>
+            </div>
+          </div>
+        ) : isError || !safeData.length ? (
+          <div className="flex items-center justify-center h-[260px]">
+            <div className="text-center">
+              <Activity className="w-6 h-6 text-slate-600 mx-auto" />
+              <p className="mt-2 text-xs text-slate-500">{isError ? 'Failed to load trend data' : 'No trend data available'}</p>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            {renderChart()}
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Legend */}
@@ -165,7 +167,7 @@ export default function FraudChart({ metrics, systemHealth }) {
         </div>
         <div className="px-4 py-3 text-center">
           <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider mb-0.5">Accuracy</p>
-          <p className="text-sm font-bold text-emerald-400">{metrics?.accuracy || 99.2}%</p>
+          <p className="text-sm font-bold text-emerald-400">{metrics?.accuracy || '—'}%</p>
         </div>
       </div>
     </div>

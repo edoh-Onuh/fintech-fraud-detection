@@ -23,13 +23,7 @@ const NAV_ITEMS = [
   { id: 'analysis', label: 'Analysis Report', icon: FileBarChart }
 ]
 
-const DEMO_METRICS = { total_transactions: 45678, fraud_detected: 1234, fraud_rate: 2.7, avg_response_time: 45, accuracy: 99.2, transactions_today: 3456, false_positive_rate: 0.8, detection_speed: '< 50ms' }
-const DEMO_HEALTH = { status: 'healthy', uptime: '99.97%', active_models: 3, last_retrained: '2025-01-28' }
-const DEMO_MODELS = [
-  { name: 'XGBoost Primary', status: 'active', accuracy: 99.2, last_prediction: '2s ago' },
-  { name: 'Neural Network', status: 'active', accuracy: 98.8, last_prediction: '5s ago' },
-  { name: 'Ensemble Model', status: 'active', accuracy: 99.5, last_prediction: '1s ago' }
-]
+
 
 export default function Dashboard({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -45,43 +39,38 @@ export default function Dashboard({ user, onLogout }) {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
-  const { data: metrics } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['metrics'],
-    queryFn: async () => { try { const r = await api.get('/metrics'); return r.data } catch { return DEMO_METRICS } },
+    queryFn: async () => { const r = await api.get('/metrics'); return r.data },
     refetchInterval: autoRefresh ? 30000 : false,
-    placeholderData: DEMO_METRICS
   })
 
   const { data: systemHealth } = useQuery({
     queryKey: ['health'],
-    queryFn: async () => { try { const r = await api.get('/health'); return r.data } catch { return DEMO_HEALTH } },
+    queryFn: async () => { const r = await api.get('/health'); return r.data },
     refetchInterval: autoRefresh ? 30000 : false,
-    placeholderData: DEMO_HEALTH
   })
 
-  const { data: models } = useQuery({
+  const { data: models, isLoading: modelsLoading } = useQuery({
     queryKey: ['models'],
     queryFn: async () => {
-      try {
-        const r = await api.get('/models')
-        const data = r.data
-        // Backend returns { count, models: [...] } — extract the array
-        const list = Array.isArray(data) ? data : data?.models || data
-        return Array.isArray(list) ? list : DEMO_MODELS
-      } catch { return DEMO_MODELS }
+      const r = await api.get('/models')
+      const data = r.data
+      // Backend returns { count, models: [...] } — extract the array
+      const list = Array.isArray(data) ? data : data?.models || data
+      return Array.isArray(list) ? list : []
     },
     refetchInterval: autoRefresh ? 60000 : false,
-    placeholderData: DEMO_MODELS
   })
 
   const navigate = (page) => { setCurrentPage(page); setSidebarOpen(false) }
   const pageTitle = NAV_ITEMS.find(n => n.id === currentPage)?.label || 'Dashboard'
 
   const statsCards = [
-    { title: 'Total Transactions', value: metrics?.total_transactions?.toLocaleString() || '—', icon: Activity, color: '#3b82f6', trend: '+12.5%', subtitle: 'vs last period' },
-    { title: 'Fraud Detected', value: metrics?.fraud_detected?.toLocaleString() || '—', icon: ShieldAlert, color: '#ef4444', trend: '-8.3%', subtitle: 'fewer incidents' },
-    { title: 'Approval Rate', value: `${metrics?.approval_rate ?? 97.4}%`, icon: CheckCircle, color: '#10b981', trend: '+0.3%', subtitle: 'transaction approval' },
-    { title: 'Avg Response', value: `${metrics?.avg_response_time ?? 42}ms`, icon: Clock, color: '#f59e0b', trend: '-15ms', subtitle: 'faster than avg' }
+    { title: 'Total Transactions', value: metricsLoading ? '...' : metrics?.total_transactions?.toLocaleString() || '—', icon: Activity, color: '#3b82f6', trend: '+12.5%', subtitle: 'vs last period' },
+    { title: 'Fraud Detected', value: metricsLoading ? '...' : metrics?.fraud_detected?.toLocaleString() || '—', icon: ShieldAlert, color: '#ef4444', trend: '-8.3%', subtitle: 'fewer incidents' },
+    { title: 'Approval Rate', value: metricsLoading ? '...' : metrics?.approval_rate ? `${metrics.approval_rate}%` : '—', icon: CheckCircle, color: '#10b981', trend: '+0.3%', subtitle: 'transaction approval' },
+    { title: 'Avg Response', value: metricsLoading ? '...' : metrics?.avg_response_time ? `${metrics.avg_response_time}ms` : '—', icon: Clock, color: '#f59e0b', trend: '-15ms', subtitle: 'faster than avg' }
   ]
 
   const renderContent = () => {

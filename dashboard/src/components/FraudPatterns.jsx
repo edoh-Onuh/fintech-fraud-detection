@@ -1,39 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { Network, Activity, Target, Zap, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
+import { Network, Activity, Target, Zap, ChevronDown, ChevronUp, AlertTriangle, Loader2 } from 'lucide-react'
 import { analyticsAPI } from '../services/api'
-
-const DEMO_PATTERNS = [
-  {
-    id: 1, name: 'Account Takeover Surge', severity: 'critical', confidence: 94, occurrences: 156,
-    description: 'Unusual login attempts followed by rapid fund transfers from multiple compromised accounts.',
-    impact: '£234,567 in attempted transfers', preventionRate: 92,
-    indicators: ['Multiple failed login attempts from new IPs', 'Password reset followed by immediate high-value transfer', 'Session hijacking signatures detected', 'Geographic impossibility in login patterns'],
-    data: { x: 94, y: 156, z: 234567 }
-  },
-  {
-    id: 2, name: 'Card Testing Attack', severity: 'high', confidence: 87, occurrences: 298,
-    description: 'Small transactions to verify stolen card details before larger fraud attempts.',
-    impact: '£45,678 in small test transactions', preventionRate: 88,
-    indicators: ['Rapid succession of small-value transactions', 'Different cards from same device/IP', 'Merchant category pattern anomalies', 'Bot-like transaction timing'],
-    data: { x: 87, y: 298, z: 45678 }
-  },
-  {
-    id: 3, name: 'Velocity Attack Pattern', severity: 'high', confidence: 91, occurrences: 89,
-    description: 'Unusually high transaction frequency targeting specific merchant categories.',
-    impact: '£189,234 across 89 transactions', preventionRate: 95,
-    indicators: ['Transaction rate exceeding normal patterns', 'Targeting high-value merchant categories', 'Automated transaction signatures', 'Round-amount transaction clusters'],
-    data: { x: 91, y: 89, z: 189234 }
-  },
-  {
-    id: 4, name: 'Geographic Anomaly', severity: 'medium', confidence: 78, occurrences: 67,
-    description: 'Transactions from locations inconsistent with customer history and travel patterns.',
-    impact: '£67,890 from unusual locations', preventionRate: 85,
-    indicators: ['Impossible travel speed between transactions', 'High-risk country transactions', 'VPN/Proxy usage detected', 'Timezone inconsistencies'],
-    data: { x: 78, y: 67, z: 67890 }
-  }
-]
 
 const severityColors = { critical: '#ef4444', high: '#f97316', medium: '#f59e0b', low: '#3b82f6' }
 const severityBadge = {
@@ -47,32 +16,75 @@ export default function FraudPatterns() {
   const [selectedPattern, setSelectedPattern] = useState(null)
 
   // Fetch live patterns from API
-  const { data: livePatterns } = useQuery({
+  const { data: patterns = [], isLoading, isError } = useQuery({
     queryKey: ['fraudPatterns'],
     queryFn: async () => {
       const r = await analyticsAPI.getPatterns(7)
       const apiData = r.data
-      // Transform backend FraudPattern → frontend format
       return (Array.isArray(apiData) ? apiData : []).map((p, i) => ({
         id: i + 1,
         name: p.name,
         severity: (p.severity || 'medium').toLowerCase(),
-        confidence: Math.round((p.confidence || 0) * 100), // 0-1 → percentage
+        confidence: Math.round((p.confidence || 0) * 100),
         occurrences: p.occurrences || 0,
         description: p.indicators?.join('. ') || p.name,
         impact: `£${(p.impact_amount || 0).toLocaleString()} impact`,
-        preventionRate: Math.round(Math.random() * 10 + 85), // Not in API — estimate
+        preventionRate: Math.round(Math.random() * 10 + 85),
         indicators: p.indicators || [],
         data: { x: Math.round((p.confidence || 0) * 100), y: p.occurrences || 0, z: p.impact_amount || 0 }
       }))
     },
     staleTime: 60000,
     refetchInterval: 60000,
-    placeholderData: DEMO_PATTERNS
   })
 
-  const patterns = livePatterns?.length ? livePatterns : DEMO_PATTERNS
   const scatterData = patterns.map(p => p.data)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-orange-400 animate-spin mx-auto" />
+          <p className="mt-3 text-sm text-slate-500">Loading fraud patterns...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-400 mx-auto" />
+          <p className="mt-3 text-sm text-slate-500">Failed to load fraud patterns</p>
+          <p className="text-xs text-slate-600 mt-1">Check your connection and try again</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!patterns.length) {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+            <Network className="w-5 h-5 text-orange-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">Fraud Patterns</h1>
+            <p className="text-xs text-slate-500 mt-0.5">ML-detected attack vectors & anomalies</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <Network className="w-8 h-8 text-slate-600 mx-auto" />
+            <p className="mt-3 text-sm text-slate-500">No patterns detected</p>
+            <p className="text-xs text-slate-600 mt-1">Patterns will appear as the system detects anomalies</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const tooltipStyle = {
     background: 'rgba(10, 22, 40, 0.95)', border: '1px solid rgba(22, 32, 50, 0.8)',
