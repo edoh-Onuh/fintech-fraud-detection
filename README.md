@@ -1,177 +1,262 @@
-# Autonomous Fraud Detection System for Fintech
+# JED 24 — Nexus Command Center
 
-## Overview
-A production-grade autonomous fraud detection system designed for regulated financial environments, demonstrating advanced ML techniques, privacy-preserving technologies, and enterprise security standards.
+> Production-grade fraud detection platform with real-time ML scoring, multi-currency exchange rates, and a dark-themed command center dashboard.
 
-## Key Features
+**Live Demo**: [jed24.vercel.app](https://jed24.vercel.app) &nbsp;|&nbsp; **API**: [jed24-api.onrender.com/docs](https://jed24-api.onrender.com/docs)
 
-### 1. **Advanced Machine Learning**
-- Ensemble models (XGBoost, Random Forest, Neural Networks)
-- Real-time inference with <100ms latency
-- Online learning with concept drift detection
-- Explainable AI (SHAP, LIME) for regulatory compliance
+Default credentials: `admin` / `admin123`
 
-### 2. **Privacy-Preserving Technologies**
-- Differential Privacy for model training
-- Federated Learning capabilities
-- Homomorphic Encryption for sensitive data
-- PII anonymization and tokenization
-- GDPR-compliant data handling
+---
 
-### 3. **Security & Compliance**
-- End-to-end encryption (AES-256, RSA-2048)
-- Multi-factor authentication
-- Role-based access control (RBAC)
-- Comprehensive audit trails
-- SOC 2, PCI-DSS aligned architecture
+## What It Does
 
-### 4. **Real-time Processing**
-- Event-driven architecture
-- Streaming data pipeline (Kafka-compatible)
-- Sub-100ms fraud scoring
-- Adaptive thresholds with feedback loops
+JED 24 monitors financial transactions in real time, scores them for fraud using trained ML models, and presents the results through a sleek analytics dashboard. Every transaction is persisted to an ACID-compliant database, exchange rates are fetched live from the European Central Bank, and the system seeds itself with realistic data on first boot so dashboards are never empty.
 
-### 5. **Monitoring & Observability**
-- Real-time performance metrics
-- Model drift detection
-- Anomaly detection on system behavior
-- Automated alerting and incident response
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        API Gateway (FastAPI)                     │
-│                     Rate Limiting, Auth, TLS                     │
-└────────────────────────┬───────────────────────────────────────┘
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-   ┌────▼─────┐   ┌─────▼──────┐   ┌────▼─────┐
-   │ Real-time│   │  Privacy   │   │ Security │
-   │ Scoring  │   │  Engine    │   │  Layer   │
-   │ Engine   │   │            │   │          │
-   └────┬─────┘   └─────┬──────┘   └────┬─────┘
-        │               │               │
-   ┌────▼───────────────▼───────────────▼─────┐
-   │       ML Model Ensemble Manager           │
-   │  XGBoost | Random Forest | Neural Net     │
-   └────┬──────────────────────────────────────┘
-        │
-   ┌────▼─────────────────────────────────────┐
-   │    Feature Store & Data Pipeline         │
-   │  Real-time Features | Historical Data    │
-   └────┬─────────────────────────────────────┘
-        │
-   ┌────▼─────────────────────────────────────┐
-   │   Monitoring & Explainability Dashboard  │
-   │   Metrics | Alerts | Model Explanations  │
-   └──────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                     Frontend — Vercel                                │
+│           React 18 · Vite 5 · Tailwind CSS v4 · Recharts            │
+│           "Nexus Command Center" dark theme (#04070d)                │
+└─────────────────────────┬────────────────────────────────────────────┘
+                          │ HTTPS / JSON
+┌─────────────────────────▼────────────────────────────────────────────┐
+│                     Backend — Render                                 │
+│                   FastAPI · Uvicorn · JWT Auth                       │
+│                                                                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐  ┌───────────┐ │
+│  │ Fraud       │  │ Analytics   │  │ Exchange     │  │ Seeder    │ │
+│  │ Detection   │  │ Engine      │  │ Rates (ECB)  │  │ (startup) │ │
+│  │ /detect/*   │  │ /analytics/*│  │ /exchange-*  │  │           │ │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬───────┘  └─────┬─────┘ │
+│         │                │                │                 │       │
+│  ┌──────▼────────────────▼────────────────▼─────────────────▼─────┐ │
+│  │              ML Model Registry                                 │ │
+│  │         XGBoost · Ensemble · Concept Drift                     │ │
+│  └──────┬─────────────────────────────────────────────────────────┘ │
+│         │                                                           │
+│  ┌──────▼─────────────────────────────────────────────────────────┐ │
+│  │         SQLite (WAL mode) — ACID-compliant persistence         │ │
+│  │    transactions · users · audit_events · metrics_snapshots     │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+                          │
+              ┌───────────▼───────────┐
+              │   Frankfurter API     │
+              │   (ECB exchange data) │
+              │   3 mirror failover   │
+              └───────────────────────┘
 ```
 
-## Technology Stack
+---
 
-- **ML/AI**: scikit-learn, XGBoost, TensorFlow/PyTorch, SHAP, LIME
-- **Privacy**: PySyft (Federated Learning), Diffprivlib (Differential Privacy)
-- **Security**: Cryptography, PyJWT, Passlib, python-jose
-- **API**: FastAPI, Pydantic, Uvicorn
-- **Data**: Pandas, NumPy, Polars
-- **Monitoring**: Prometheus, Grafana-compatible metrics
-- **Testing**: Pytest, Locust (load testing)
+## Features
+
+### Dashboard Pages
+| Page | Description |
+|------|-------------|
+| **Dashboard** | Stats cards (transactions, fraud count, approval rate, avg response), fraud trend chart, model status |
+| **Fraud Patterns** | Detected attack patterns — velocity spikes, account takeover chains, geo anomalies |
+| **Recommendations** | AI-driven priority-ranked security recommendations |
+| **Analysis Report** | Executive analytics — fraud by type (pie), risk distribution (bar), trends (line), geographic heatmap, model performance radar, accuracy metrics table, exportable reports |
+
+### Transaction Analyzer
+- Real-time fraud scoring via trained XGBoost/Ensemble models
+- Multi-currency support with live ECB exchange rates
+- Inline GBP conversion for foreign currency amounts
+- Risk factors breakdown, model version, and processing time
+
+### Exchange Rates (Frankfurter / ECB)
+- `GET /exchange-rates/latest` — live rates for any base currency
+- `GET /exchange-rates/currencies` — all supported currency codes + names
+- `POST /exchange-rates/convert` — amount conversion between currencies
+- `GET /exchange-rates/historical` — time-series rate data
+- 1-hour in-memory cache, 3-mirror auto-failover
+
+### Data Layer
+- **SQLite WAL mode** — concurrent reads/writes, ACID guarantees
+- **Automatic seeding** — 350 realistic transactions across 8 currencies, 26 merchants, 8 countries on first boot
+- **Audit trail** — every login, fraud detection, and system event logged
+
+### Security
+- JWT authentication (HS256, 24h expiry)
+- Role-based access control (admin, analyst)
+- Password hashing via bcrypt
+- CORS + GZip middleware
+- Comprehensive audit logging
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | React 18, Vite 5, Tailwind CSS v4, Recharts, Lucide React, TanStack Query, Axios |
+| **Backend** | FastAPI, Uvicorn, Pydantic v2, PyJWT |
+| **ML** | XGBoost, scikit-learn, Ensemble methods, SHAP |
+| **Database** | SQLite (WAL mode, ACID) |
+| **Privacy** | Differential Privacy, Federated Learning, PII anonymization |
+| **Security** | AES-256 encryption, bcrypt, RBAC, audit trails |
+| **External APIs** | Frankfurter (ECB exchange rates) — free, no key required |
+| **Hosting** | Vercel (frontend), Render (backend) |
+
+---
 
 ## Project Structure
 
 ```
-fraud-detection-system/
+fintech/
+├── dashboard/                    # React frontend
+│   └── src/
+│       ├── components/
+│       │   ├── Dashboard.jsx         # Main layout + navigation
+│       │   ├── Login.jsx             # Auth screen
+│       │   ├── TransactionMonitor.jsx # Multi-currency fraud scorer
+│       │   ├── FraudPatterns.jsx     # Pattern detection view
+│       │   ├── Recommendations.jsx   # AI recommendations
+│       │   ├── AnalysisReport.jsx    # Full analytics suite
+│       │   ├── FraudChart.jsx        # Trend chart
+│       │   ├── ModelStatus.jsx       # ML model cards
+│       │   ├── StatsCard.jsx         # Metric cards
+│       │   └── Header.jsx           # Top bar
+│       └── services/
+│           └── api.js               # Axios client + API modules
 ├── src/
-│   ├── models/              # ML models and training
-│   ├── privacy/             # Privacy-preserving techniques
-│   ├── security/            # Encryption and auth
-│   ├── api/                 # API endpoints
-│   ├── realtime/            # Real-time processing
-│   ├── monitoring/          # Observability
-│   └── utils/               # Utilities
-├── tests/                   # Comprehensive test suite
-├── config/                  # Configuration files
-├── data/                    # Sample data and schemas
-├── notebooks/               # Research and analysis
-├── deployment/              # Docker, K8s configs
-└── docs/                    # Documentation
+│   ├── api/
+│   │   ├── main.py                  # FastAPI app + endpoints
+│   │   ├── analytics.py             # Analytics router
+│   │   ├── database.py              # SQLite ACID layer
+│   │   ├── exchange_rates.py        # Frankfurter API client
+│   │   ├── exchange_rates_router.py # Exchange rates endpoints
+│   │   └── seeder.py               # Transaction data seeder
+│   ├── models/                      # XGBoost + Ensemble models
+│   ├── realtime/                    # Real-time fraud detection engine
+│   ├── security/                    # Auth, encryption, RBAC
+│   ├── privacy/                     # Differential privacy, federated learning
+│   ├── monitoring/                  # Metrics, alerts, performance
+│   ├── compliance/                  # Audit logging
+│   └── utils/                       # Shared utilities
+├── models/                          # Trained model files (.json, .pkl)
+├── tests/                           # Test suite
+├── deployment/                      # Docker + K8s configs
+├── render.yaml                      # Render auto-deploy blueprint
+├── requirements-api.txt             # Production API dependencies
+└── requirements.txt                 # Full dependencies (training + API)
 ```
 
-## Key Trade-offs Managed
+---
 
-### 1. **Model Accuracy vs. Privacy**
-- Differential privacy adds calibrated noise while maintaining >95% accuracy
-- Federated learning enables multi-institution learning without data sharing
-- Secure multi-party computation for sensitive feature engineering
+## API Endpoints
 
-### 2. **Latency vs. Security**
-- Optimized encryption with caching strategies
-- Parallel security checks
-- Hardware acceleration support (AES-NI)
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/login` | JWT login (returns token + user info) |
+| POST | `/auth/logout` | Invalidate session |
 
-### 3. **Explainability vs. Complexity**
-- SHAP values for complex ensemble models
-- Simplified rule-based explanations for customers
-- Detailed technical explanations for regulators
+### Fraud Detection
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/detect/fraud` | Score a transaction for fraud |
 
-### 4. **False Positives vs. False Negatives**
-- Configurable thresholds per transaction type
-- Cost-sensitive learning
-- Human-in-the-loop for edge cases
+### Metrics & Health
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | System health + DB stats + uptime |
+| GET | `/metrics` | Aggregate transaction metrics |
+| GET | `/metrics/prometheus` | Prometheus-format metrics |
+| GET | `/models` | Loaded ML models + performance |
 
-## Regulatory Compliance
+### Analytics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/analytics/patterns` | Detected fraud patterns |
+| GET | `/analytics/risk-trends` | Risk trends over time |
+| GET | `/analytics/geographic-insights` | Fraud by region |
+| GET | `/analytics/model-comparison` | Model performance metrics |
+| GET | `/analytics/business-impact` | Financial impact summary |
+| POST | `/analytics/recommendations` | AI-ranked recommendations |
 
-- **GDPR**: Right to explanation, data minimization, anonymization
-- **PSD2**: Strong customer authentication, secure communication
-- **PCI-DSS**: Cardholder data protection, encryption standards
-- **FCA Guidelines**: Model governance, risk management, audit trails
+### Exchange Rates
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/exchange-rates/latest` | Latest ECB rates |
+| GET | `/exchange-rates/currencies` | Supported currencies |
+| POST | `/exchange-rates/convert` | Currency conversion |
+| GET | `/exchange-rates/historical` | Historical rate series |
+
+### Audit
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/audit/events` | Audit event log |
+
+---
 
 ## Getting Started
 
+### Run the API locally
+
 ```bash
+# Create virtual environment
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS/Linux
+
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements-api.txt
 
-# Run tests
-pytest tests/ -v --cov=src
-
-# Start API server
-python -m src.api.main
-
-# Train models
-python -m src.models.train --config config/training.yaml
-
-# Run monitoring dashboard
-python -m src.monitoring.dashboard
+# Start the server
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## Performance Benchmarks
+The API auto-initializes the database, loads ML models, registers default users, and seeds 350 transactions on first start.
 
-- **Inference Latency**: <50ms (p95), <100ms (p99)
-- **Throughput**: >10,000 transactions/second
-- **Accuracy**: 97.5% (with 0.1% false positive rate)
-- **Recall**: 94.2% fraud detection rate
-- **Privacy Budget**: ε=1.0 differential privacy guarantee
+### Run the frontend locally
 
-## Innovation Highlights
+```bash
+cd dashboard
+npm install
+npm run dev
+```
 
-1. **Adaptive Learning**: Continuous model updates with federated learning
-2. **Privacy-Utility Trade-off**: Automated privacy budget allocation
-3. **Explainable Security**: AI-driven security recommendations
-4. **Multi-modal Fraud Detection**: Transaction, behavioral, and network analysis
-5. **Autonomous Response**: Self-healing and adaptive thresholding
+Set `VITE_API_URL=http://localhost:8000` in `dashboard/.env` to point at your local API.
+
+### Deploy
+
+- **Backend** — push to `main`; Render auto-deploys via `render.yaml`
+- **Frontend** — push to `main`; Vercel auto-deploys from `dashboard/`
+
+---
+
+## Performance
+
+| Metric | Value |
+|--------|-------|
+| Inference latency | <50ms (p95) |
+| Fraud detection accuracy | >97% |
+| Recall | >94% |
+| Database | ACID-compliant, WAL mode |
+| Exchange rate cache | 1-hour TTL, 3-mirror failover |
+| Seed data | 350 transactions, 8 currencies, 26 merchants |
+
+---
+
+## Regulatory Compliance
+
+- **GDPR** — right to explanation, data minimization, PII anonymization
+- **PSD2** — strong customer authentication, secure communication
+- **PCI-DSS** — cardholder data protection, encryption standards
+- **FCA Guidelines** — model governance, risk management, audit trails
+
+---
 
 ## Author
 
-Built as a proof of technical excellence for UK Global Talent Visa application, demonstrating:
-- Advanced ML engineering
-- Privacy-preserving AI
-- Enterprise security architecture
-- Production system design
-- Regulatory technology expertise
+Built by **Edoh Onuh** as a proof of technical excellence, demonstrating advanced ML engineering, privacy-preserving AI, enterprise security architecture, and production system design.
 
 ## License
 
-MIT License - For demonstration and educational purposes
+MIT License
