@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Shield, Eye, EyeOff, Lock, User, AlertCircle, ArrowRight, Activity } from 'lucide-react'
+import { Shield, Eye, EyeOff, Zap, Lock, User, AlertCircle, ArrowRight, Activity } from 'lucide-react'
 import { authAPI } from '../services/api'
 
 export default function Login({ onLogin }) {
