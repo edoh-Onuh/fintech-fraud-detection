@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Shield, Eye, EyeOff, Zap, Lock, User, AlertCircle, ArrowRight, Activity } from 'lucide-react'
+import { authAPI } from '../services/api'
 
 export default function Login({ onLogin, onDemoMode }) {
   const [username, setUsername] = useState('')
@@ -14,17 +15,11 @@ export default function Login({ onLogin, onDemoMode }) {
     setError('')
     setLoading(true)
     try {
-      const API = import.meta.env.VITE_API_URL || 'https://jed24-api.onrender.com'
-      const res = await fetch(`${API}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ username: username.trim(), password })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Invalid credentials')
-      onLogin(data.access_token, data.user || { username: username.trim() })
+      const { data } = await authAPI.login(username.trim(), password)
+      onLogin(data.access_token, { user_id: data.user_id, username: data.username, roles: data.roles })
     } catch (err) {
-      setError(err.message === 'Failed to fetch' ? 'Server unavailable — use Demo Mode' : err.message)
+      const msg = err.response?.data?.detail || err.message
+      setError(msg === 'Network Error' ? 'Server unavailable — please try again later' : msg)
     } finally {
       setLoading(false)
     }
@@ -169,7 +164,7 @@ export default function Login({ onLogin, onDemoMode }) {
             </button>
 
             <p className="text-center text-xs text-slate-600 mt-4">
-              Demo credentials: <span className="text-slate-400 font-medium">admin</span> / <span className="text-slate-400 font-medium">admin123</span>
+              Credentials: <span className="text-slate-400 font-medium">admin</span> / <span className="text-slate-400 font-medium">admin123</span> or <span className="text-slate-400 font-medium">demo</span> / <span className="text-slate-400 font-medium">demo123</span>
             </p>
           </div>
 

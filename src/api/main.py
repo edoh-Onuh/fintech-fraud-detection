@@ -509,20 +509,18 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Error loading models: {e}")
     
-    # Register demo user
-    try:
-        demo_user = auth_manager.register_user(
-            user_id="demo_user",
-            username="demo",
-            email="demo@example.com",
-            password="demo123",
-            roles=["analyst"]
-        )
-        logger.info("Demo user created: demo / demo123")
-    except ValueError:
-        logger.info("Demo user already exists")
-    except Exception as e:
-        logger.error(f"Failed to create demo user: {type(e).__name__}: {e}")
+    # Register default users
+    for user_cfg in [
+        {"user_id": "admin_user", "username": "admin", "email": "admin@example.com", "password": "admin123", "roles": ["admin", "analyst"]},
+        {"user_id": "demo_user", "username": "demo", "email": "demo@example.com", "password": "demo123", "roles": ["analyst"]},
+    ]:
+        try:
+            auth_manager.register_user(**user_cfg)
+            logger.info(f"User created: {user_cfg['username']}")
+        except ValueError:
+            logger.info(f"User already exists: {user_cfg['username']}")
+        except Exception as e:
+            logger.error(f"Failed to create user {user_cfg['username']}: {type(e).__name__}: {e}")
     
     # Log startup
     audit_logger.log_event(
