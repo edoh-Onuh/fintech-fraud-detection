@@ -1,12 +1,30 @@
-import { useState } from 'react'
-import { Search, AlertTriangle, CheckCircle, Shield, Activity, Send, Loader2, Cpu } from 'lucide-react'
-import { api } from '../services/api'
+import { useState, useEffect } from 'react'
+import { Search, AlertTriangle, CheckCircle, Shield, Activity, Send, Loader2, Cpu, ArrowRightLeft } from 'lucide-react'
+import { api, exchangeRatesAPI } from '../services/api'
+
+const CURRENCY_SYMBOLS = {
+  GBP: '£', USD: '$', EUR: '€', NGN: '₦', JPY: '¥',
+  BRL: 'R$', INR: '₹', ZAR: 'R', CAD: 'C$', AUD: 'A$',
+  CHF: 'Fr', CNY: '¥', KRW: '₩', MXN: '$', SEK: 'kr',
+}
 
 export default function TransactionMonitor({ systemHealth }) {
-  const [formData, setFormData] = useState({ amount: '', merchant: '', category: 'online', location: '' })
+  const [formData, setFormData] = useState({ amount: '', merchant: '', category: 'online', location: '', currency: 'GBP' })
   const [result, setResult] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState(null)
+  const [currencies, setCurrencies] = useState(null)
+  const [rates, setRates] = useState(null)
+
+  // Fetch supported currencies + rates on mount
+  useEffect(() => {
+    exchangeRatesAPI.getCurrencies()
+      .then(r => setCurrencies(r.data))
+      .catch(() => setCurrencies(CURRENCY_SYMBOLS))
+    exchangeRatesAPI.getLatestRates('GBP')
+      .then(r => setRates(r.data?.rates))
+      .catch(() => {})
+  }, [])
 
   const handleAnalyze = async (e) => {
     e.preventDefault()
@@ -22,7 +40,7 @@ export default function TransactionMonitor({ systemHealth }) {
       user_id: 'dashboard_user',
       merchant_id: formData.merchant || 'unknown_merchant',
       amount,
-      currency: 'GBP',
+      currency: formData.currency || 'GBP',
       transaction_type: 'purchase',
       channel: formData.category === 'in-store' ? 'pos' : formData.category === 'atm' ? 'atm' : formData.category === 'international' ? 'online' : 'online',
       country: formData.location?.split(',').pop()?.trim() || 'GB',
@@ -90,7 +108,7 @@ export default function TransactionMonitor({ systemHealth }) {
           <form onSubmit={handleAnalyze} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Amount (&pound;)</label>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Amount ({CURRENCY_SYMBOLS[formData.currency] || formData.currency})</label>
                 <input
                   type="number"
                   value={formData.amount}
@@ -99,7 +117,29 @@ export default function TransactionMonitor({ systemHealth }) {
                   className="w-full px-3.5 py-2.5 bg-[#04070d] border border-[#162032] rounded-xl text-white text-sm placeholder-slate-700 focus:border-[#10b981]/40 outline-none transition-all"
                   required
                 />
+                {formData.currency !== 'GBP' && rates && formData.amount && (
+                  <p className="text-[10px] text-emerald-500/70 mt-1 flex items-center gap-1">
+                    <ArrowRightLeft className="w-2.5 h-2.5" />
+                    &pound;{(parseFloat(formData.amount) / (rates[formData.currency] || 1)).toFixed(2)} GBP
+                  </p>
+                )}
               </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Currency</label>
+                <select
+                  value={formData.currency}
+                  onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-[#04070d] border border-[#162032] rounded-xl text-white text-sm focus:border-[#10b981]/40 outline-none transition-all [&>option]:bg-[#0a1628] appearance-none"
+                >
+                  {currencies ? Object.keys(currencies).sort().map(code => (
+                    <option key={code} value={code}>{code} — {currencies[code]}</option>
+                  )) : Object.keys(CURRENCY_SYMBOLS).map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Merchant</label>
                 <input
@@ -110,8 +150,6 @@ export default function TransactionMonitor({ systemHealth }) {
                   className="w-full px-3.5 py-2.5 bg-[#04070d] border border-[#162032] rounded-xl text-white text-sm placeholder-slate-700 focus:border-[#10b981]/40 outline-none transition-all"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Category</label>
                 <select

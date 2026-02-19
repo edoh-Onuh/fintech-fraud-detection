@@ -159,24 +159,45 @@ def update_last_login(user_id: str):
 def save_transaction(tx: Dict):
     """Persist a fraud-scored transaction atomically."""
     with atomic() as conn:
-        conn.execute(
-            """INSERT OR REPLACE INTO transactions
-               (transaction_id, user_id, merchant_id, amount, currency,
-                transaction_type, channel, country, city,
-                fraud_score, is_fraud, risk_level, decision,
-                model_version, processing_time_ms, risk_factors)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                tx["transaction_id"], tx["user_id"], tx.get("merchant_id"),
-                tx["amount"], tx.get("currency", "GBP"),
-                tx.get("transaction_type"), tx.get("channel"),
-                tx.get("country"), tx.get("city"),
-                tx.get("fraud_score"), int(tx.get("is_fraud", 0)),
-                tx.get("risk_level"), tx.get("decision"),
-                tx.get("model_version"), tx.get("processing_time_ms"),
-                json.dumps(tx.get("risk_factors", []))
+        if "created_at" in tx:
+            conn.execute(
+                """INSERT OR REPLACE INTO transactions
+                   (transaction_id, user_id, merchant_id, amount, currency,
+                    transaction_type, channel, country, city,
+                    fraud_score, is_fraud, risk_level, decision,
+                    model_version, processing_time_ms, risk_factors, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    tx["transaction_id"], tx["user_id"], tx.get("merchant_id"),
+                    tx["amount"], tx.get("currency", "GBP"),
+                    tx.get("transaction_type"), tx.get("channel"),
+                    tx.get("country"), tx.get("city"),
+                    tx.get("fraud_score"), int(tx.get("is_fraud", 0)),
+                    tx.get("risk_level"), tx.get("decision"),
+                    tx.get("model_version"), tx.get("processing_time_ms"),
+                    json.dumps(tx.get("risk_factors", [])),
+                    tx["created_at"]
+                )
             )
-        )
+        else:
+            conn.execute(
+                """INSERT OR REPLACE INTO transactions
+                   (transaction_id, user_id, merchant_id, amount, currency,
+                    transaction_type, channel, country, city,
+                    fraud_score, is_fraud, risk_level, decision,
+                    model_version, processing_time_ms, risk_factors)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    tx["transaction_id"], tx["user_id"], tx.get("merchant_id"),
+                    tx["amount"], tx.get("currency", "GBP"),
+                    tx.get("transaction_type"), tx.get("channel"),
+                    tx.get("country"), tx.get("city"),
+                    tx.get("fraud_score"), int(tx.get("is_fraud", 0)),
+                    tx.get("risk_level"), tx.get("decision"),
+                    tx.get("model_version"), tx.get("processing_time_ms"),
+                    json.dumps(tx.get("risk_factors", []))
+                )
+            )
 
 
 def get_transaction_stats(days: int = 30) -> Dict:

@@ -85,4 +85,15 @@ export const analyticsAPI = {
     api.get('/analytics/model-comparison', { params: { token: 'bearer' } }),
 }
 
+export const exchangeRatesAPI = {
+  getLatestRates: (base = 'GBP') =>
+    api.get('/exchange-rates/latest', { params: { base } }),
+  getCurrencies: () =>
+    api.get('/exchange-rates/currencies'),
+  convert: (amount, from_currency, to_currency) =>
+    api.post('/exchange-rates/convert', { amount, from_currency, to_currency }),
+  getHistorical: (base = 'GBP', start_date = '', end_date = '', symbols = 'USD,EUR,NGN') =>
+    api.get('/exchange-rates/historical', { params: { base, start_date, end_date, symbols } }),
+}
+
 export default api

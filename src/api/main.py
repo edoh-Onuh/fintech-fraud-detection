@@ -21,7 +21,9 @@ from ..security import AuthenticationManager, AuthorizationManager, User
 from ..monitoring import MetricsCollector, AlertManager, PerformanceMonitor
 from ..compliance import AuditLogger, EventType
 from .analytics import router as analytics_router
+from .exchange_rates_router import router as exchange_rates_router
 from . import database as db
+from . import seeder
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Include routers
 app.include_router(analytics_router)
+app.include_router(exchange_rates_router)
 
 # Security
 security = HTTPBearer()
@@ -541,6 +544,9 @@ async def startup_event():
             logger.info(f"User already exists: {user_cfg['username']}")
         except Exception as e:
             logger.error(f"Failed to create user {user_cfg['username']}: {type(e).__name__}: {e}")
+    
+    # Seed database with realistic transactions if empty
+    seeder.seed_if_empty()
     
     # Log startup
     audit_logger.log_event(
